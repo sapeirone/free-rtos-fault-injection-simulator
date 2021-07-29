@@ -1,8 +1,16 @@
-project(sim C)
+project(sim C ASM)
 
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+if (WIN32)
+    # set(CMAKE_C_FLAGS "-m32")
+    # set(CMAKE_CXX_FLAGS "-m32")
+    # set(CMAKE_SHARED_LINKER_FLAGS "-m32")
+    # set(CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE "Win32")
+    set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "" FORCE)
+endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/build)
 
@@ -22,10 +30,16 @@ if (UNIX)
 elseif (WIN32)
     include_directories(${FREERTOS_DIR}/Demo/WIN32-MSVC/)
     include_directories(${FREERTOS_DIR}/Demo/WIN32-MSVC/Trace_Recorder_Configuration/)
+    include_directories(${KERNEL_DIR}/portable/MSVC-MingW/)
 endif()
 
 file(GLOB FreeRTOS_src ${KERNEL_DIR}/*.c)
-list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MemMang/heap_3.c)
+
+if (UNIX)
+    list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MemMang/heap_3.c)
+elseif (WIN32)
+    list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MemMang/heap_5.c)
+endif()
 
 # unix-specific kernel code
 if (UNIX) 
@@ -33,6 +47,7 @@ if (UNIX)
     list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/port.c)
 elseif (WIN32)
     # nothing ???
+    list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MSVC-MingW/port.c)
 endif()
 
 # unix-specific compiler parameters
@@ -57,9 +72,10 @@ if (UNIX)
     list(APPEND sources ./Demo/Posix_GCC/run-time-stats-utils.c)
 elseif (WIN32)
     file(GLOB sources ./Demo/WIN32-MSVC/FreeRTOSConfig.h)
-    list(APPEND sources ./Demo/Posix_GCC/main.c)
-    list(APPEND sources ./Demo/Posix_GCC/main_full.c)
-    list(APPEND sources ./Demo/Posix_GCC/main_blinky.c)
+    list(APPEND sources ./Demo/WIN32-MSVC/main.c)
+    list(APPEND sources ./Demo/WIN32-MSVC/main_full.c)
+    list(APPEND sources ./Demo/WIN32-MSVC/main_blinky.c)
+    list(APPEND sources ./Demo/WIN32-MSVC/Run-time-stats-utils.c)
 endif()
 
 add_executable(${PROJECT_NAME}
@@ -88,6 +104,7 @@ add_executable(${PROJECT_NAME}
         ${FREERTOS_DIR}/Demo/Common/Minimal/StreamBufferDemo.c
         ${FREERTOS_DIR}/Demo/Common/Minimal/StreamBufferInterrupt.c
         ${FREERTOS_DIR}/Demo/Common/Minimal/TaskNotify.c
+        ${FREERTOS_DIR}/Demo/Common/Minimal/TaskNotifyArray.c
         ${FREERTOS_DIR}/Demo/Common/Minimal/TimerDemo.c
         ${FREERTOS_PLUS_DIR}/Source/FreeRTOS-Plus-Trace/trcKernelPort.c
         ${FREERTOS_PLUS_DIR}/Source/FreeRTOS-Plus-Trace/trcSnapshotRecorder.c
@@ -98,4 +115,7 @@ add_executable(${PROJECT_NAME}
 # Link FreeRTOS as a static library
 add_library(freertos STATIC ${FreeRTOS_src})
 target_link_libraries(${PROJECT_NAME} freertos)
-target_link_libraries(${PROJECT_NAME} pthread)
+
+if (UNIX)
+    target_link_libraries(${PROJECT_NAME} pthread)
+endif()
