@@ -14,32 +14,56 @@ include_directories(${KERNEL_DIR}/include)
 include_directories(${FREERTOS_DIR}/Demo/Common/include)
 include_directories(${FREERTOS_PLUS_DIR}/Source/FreeRTOS-Plus-Trace/Include)
 
-include_directories(${FREERTOS_DIR}/Demo/Posix_GCC/)
-include_directories(${KERNEL_DIR}/portable/ThirdParty/GCC/Posix)
-include_directories(${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/utils)
+# unix-specific includes
+if (UNIX)
+    include_directories(${FREERTOS_DIR}/Demo/Posix_GCC/)
+    include_directories(${KERNEL_DIR}/portable/ThirdParty/GCC/Posix)
+    include_directories(${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/utils)
+elseif (WIN32)
+    include_directories(${FREERTOS_DIR}/Demo/WIN32-MSVC/)
+    include_directories(${FREERTOS_DIR}/Demo/WIN32-MSVC/Trace_Recorder_Configuration/)
+endif()
 
 file(GLOB FreeRTOS_src ${KERNEL_DIR}/*.c)
 list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MemMang/heap_3.c)
 
-list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/utils/wait_for_event.c)
-list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/port.c)
+# unix-specific kernel code
+if (UNIX) 
+    list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/utils/wait_for_event.c)
+    list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/port.c)
+elseif (WIN32)
+    # nothing ???
+endif()
 
-add_definitions(-DprojCOVERAGE_TEST=0)
-add_definitions(-D_WINDOWS_)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ggdb3 -O0")
+# unix-specific compiler parameters
+if (UNIX)
+    add_definitions(-DprojCOVERAGE_TEST=0)
+    add_definitions(-D_WINDOWS_) # ???
 
-file(GLOB common_full ./Demo/Common/Full/*.c)
-file(GLOB common_minimal ./Demo/Common/Minimal/*.c)
+    # -ggdb3 produces extra debugging information
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ggdb3 -O0")
+elseif (WIN32)
+    # nothing
+endif()
+
+if (UNIX) 
+    file(GLOB sources ./Demo/Posix_GCC/FreeRTOSConfig.h)
+    list(APPEND sources ./Demo/Posix_GCC/main.c)
+    list(APPEND sources ./Demo/Posix_GCC/main_full.c)
+    list(APPEND sources ./Demo/Posix_GCC/main_blinky.c)
+    list(APPEND sources ./Demo/Posix_GCC/console.h)
+    list(APPEND sources ./Demo/Posix_GCC/console.c)
+    list(APPEND sources ./Demo/Posix_GCC/run-time-stats-utils.c)
+elseif (WIN32)
+    file(GLOB sources ./Demo/WIN32-MSVC/FreeRTOSConfig.h)
+    list(APPEND sources ./Demo/Posix_GCC/main.c)
+    list(APPEND sources ./Demo/Posix_GCC/main_full.c)
+    list(APPEND sources ./Demo/Posix_GCC/main_blinky.c)
+endif()
 
 add_executable(${PROJECT_NAME}
-        ./Demo/Posix_GCC/FreeRTOSConfig.h
-        ./Demo/Posix_GCC/main.c
-        ./Demo/Posix_GCC/main_full.c
-        ./Demo/Posix_GCC/main_blinky.c
-        ./Demo/Posix_GCC/console.h
-        ./Demo/Posix_GCC/console.c
-        ./Demo/Posix_GCC/run-time-stats-utils.c
+        ${sources}
         ${FREERTOS_DIR}/Demo/Common/Minimal/AbortDelay.c
         ${FREERTOS_DIR}/Demo/Common/Minimal/BlockQ.c
         ${FREERTOS_DIR}/Demo/Common/Minimal/blocktim.c
