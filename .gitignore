@@ -53,3 +53,6 @@ build/
 
 # ignore vscode stuff
 .vscode/
+
+#ignore generated files
+*.a
