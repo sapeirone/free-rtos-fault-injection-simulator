@@ -1,0 +1,1 @@
+#define ASM_NOP  __asm volatile ( "NOP" ); 
