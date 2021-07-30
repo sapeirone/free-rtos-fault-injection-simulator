@@ -242,8 +242,8 @@ void vAssertCalled(unsigned long ulLine, const char *const pcFileName)
 		value. */
 		while (ulSetToNonZeroInDebuggerToContinue == 0)
 		{
-			DO_NOP
-			DO_NOP
+			ASM_NOP;
+			ASM_NOP;
 		}
 	}
 	taskEXIT_CRITICAL();
