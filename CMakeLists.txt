@@ -61,6 +61,7 @@ if (UNIX)
     # posix-dependent source code
 elseif (WIN32)
     # win32-dependent source code
+	list(APPEND sources ./simulator/Win32/Run-time-stats-utils.c)
 endif()
 
 add_executable(${PROJECT_NAME} ${sources})

@@ -1,1 +1,1 @@
-#define ASM_NOP (__asm{ NOP })
+#define ASM_NOP __asm{ NOP }
