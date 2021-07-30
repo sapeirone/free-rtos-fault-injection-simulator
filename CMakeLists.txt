@@ -38,12 +38,11 @@ if (UNIX)
     list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/utils/wait_for_event.c)
     list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/port.c)
 elseif (WIN32)
-    # nothing ???
     list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MSVC-MingW/port.c)
 endif()
 
-# unix-specific compiler parameters
 if (UNIX)
+    # unix-specific compiler parameters
     add_definitions(-DprojCOVERAGE_TEST=0)
     add_definitions(-D_WINDOWS_) # ???
 
@@ -54,15 +53,14 @@ elseif (WIN32)
     # nothing
 endif()
 
+# platform-independent source code
+file(GLOB sources ./simulator/main.c)
+list(APPEND sources ./simulator/main_blinky.c)
+
 if (UNIX) 
-    file(GLOB sources ./simulator/main.c)
-    list(APPEND sources ./simulator/main_blinky.c)
+    # posix-dependent source code
 elseif (WIN32)
-    file(GLOB sources ./Demo/WIN32-MSVC/FreeRTOSConfig.h)
-    list(APPEND sources ./Demo/WIN32-MSVC/main.c)
-    list(APPEND sources ./Demo/WIN32-MSVC/main_full.c)
-    list(APPEND sources ./Demo/WIN32-MSVC/main_blinky.c)
-    list(APPEND sources ./Demo/WIN32-MSVC/Run-time-stats-utils.c)
+    # win32-dependent source code
 endif()
 
 add_executable(${PROJECT_NAME} ${sources})
