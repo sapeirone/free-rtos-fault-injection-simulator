@@ -132,6 +132,6 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 
 /* Overriding Trace Hook Macros implemented in this file */
 #include "loggingUtils.h"
-#define traceTASK_SWITCHED_OUT() do { if( pxCurrentTCB->pxTaskTag != NULL ) { vPortSaveFlopRegisters( pxCurrentTCB->pxTaskTag ); loggingFunction()} } while( 0 )
+#define traceTASK_SWITCHED_OUT() loggingFunction()
 
 #endif /* FREERTOS_CONFIG_H */
