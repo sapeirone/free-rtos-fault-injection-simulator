@@ -32,5 +32,11 @@ target_t* read_tasks_targets(target_t *list);
 
 target_t *create_target(const char *name, void *address, unsigned int size, target_t *content, target_t *next);
 
+// #define NAME_OF(var) (#var)
+#define nameof(var) (strrchr(#var, '>') ? (1 + strrchr(#var, '>')) : #var)
+
+#define APPEND_TARGET(target, var) { \
+    target = create_target(nameof(var), (void*) &(var), sizeof(var), NULL, target); \
+};
 
 #endif
