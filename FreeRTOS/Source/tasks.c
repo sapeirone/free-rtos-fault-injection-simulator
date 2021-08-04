@@ -5416,105 +5416,141 @@ target_t * read_tasks_targets(target_t *target) {
 
     target = read_TCB_targets(target);
 
+    // PRIVILEGED_DATA static List_t pxReadyTasksLists[ configMAX_PRIORITIES ];
+    APPEND_TARGET(target, pxReadyTasksLists, TYPE_LIST); // TODO: lists of lists
+    
+    // PRIVILEGED_DATA static List_t xDelayedTaskList1;
+    APPEND_TARGET(target, xDelayedTaskList1, TYPE_LIST);
+
+    // PRIVILEGED_DATA static List_t xDelayedTaskList2;
+    APPEND_TARGET(target, xDelayedTaskList2, TYPE_LIST);
+
+    // PRIVILEGED_DATA static List_t * volatile pxDelayedTaskList;
+    APPEND_TARGET(target, pxDelayedTaskList, TYPE_LIST);
+
+    // PRIVILEGED_DATA static List_t * volatile pxOverflowDelayedTaskList;
+    APPEND_TARGET(target, pxOverflowDelayedTaskList, TYPE_LIST);
+
+    // PRIVILEGED_DATA static List_t xPendingReadyList;
+    APPEND_TARGET(target, xPendingReadyList, TYPE_LIST);
+
+    #if ( INCLUDE_vTaskDelete == 1 )
+        // PRIVILEGED_DATA static List_t xTasksWaitingTermination;
+        APPEND_TARGET(target, xTasksWaitingTermination, TYPE_LIST);
+
+        // PRIVILEGED_DATA static volatile UBaseType_t uxDeletedTasksWaitingCleanUp = ( UBaseType_t ) 0U;
+        APPEND_TARGET(target, uxDeletedTasksWaitingCleanUp, TYPE_VARIABLE);
+    #endif
+
+    #if ( INCLUDE_vTaskSuspend == 1 )
+        // PRIVILEGED_DATA static List_t xSuspendedTaskList;
+        APPEND_TARGET(target, xSuspendedTaskList, TYPE_LIST);
+    #endif
+
+    #if ( configUSE_POSIX_ERRNO == 1 )
+        // int FreeRTOS_errno = 0;
+        APPEND_TARGET(target, FreeRTOS_errno, TYPE_VARIABLE);
+    #endif
+
     // PRIVILEGED_DATA static volatile UBaseType_t uxCurrentNumberOfTasks = ( UBaseType_t ) 0U;
-    APPEND_TARGET(target, uxCurrentNumberOfTasks);
+    APPEND_TARGET(target, uxCurrentNumberOfTasks, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static volatile TickType_t xTickCount = ( TickType_t ) configINITIAL_TICK_COUNT;
-    APPEND_TARGET(target, xTickCount);
+    APPEND_TARGET(target, xTickCount, TYPE_VARIABLE);
     
     // PRIVILEGED_DATA static volatile UBaseType_t uxTopReadyPriority = tskIDLE_PRIORITY;
-    APPEND_TARGET(target, uxTopReadyPriority);
+    APPEND_TARGET(target, uxTopReadyPriority, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static volatile BaseType_t xSchedulerRunning = pdFALSE;
-    APPEND_TARGET(target, xSchedulerRunning);
+    APPEND_TARGET(target, xSchedulerRunning, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static volatile TickType_t xPendedTicks = ( TickType_t ) 0U;
-    APPEND_TARGET(target, xPendedTicks);
+    APPEND_TARGET(target, xPendedTicks, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static volatile BaseType_t xYieldPending = pdFALSE;
-    APPEND_TARGET(target, xYieldPending);
+    APPEND_TARGET(target, xYieldPending, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static volatile BaseType_t xNumOfOverflows = ( BaseType_t ) 0;
-    APPEND_TARGET(target, xNumOfOverflows);
+    APPEND_TARGET(target, xNumOfOverflows, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static UBaseType_t uxTaskNumber = ( UBaseType_t ) 0U;
-    APPEND_TARGET(target, uxTaskNumber);
+    APPEND_TARGET(target, uxTaskNumber, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static volatile TickType_t xNextTaskUnblockTime = ( TickType_t ) 0U; /* Initialised to portMAX_DELAY before the scheduler starts. */
-    APPEND_TARGET(target, xNextTaskUnblockTime);
+    APPEND_TARGET(target, xNextTaskUnblockTime, TYPE_VARIABLE);
 
     // PRIVILEGED_DATA static TaskHandle_t xIdleTaskHandle = NULL;
-    APPEND_TARGET(target, xIdleTaskHandle);
+    APPEND_TARGET(target, xIdleTaskHandle, TYPE_VARIABLE);
 
     return target;
 }
 
 static target_t* read_TCB_targets(target_t *target) {
 
-    APPEND_TARGET(target, pxCurrentTCB);
+    APPEND_TARGET(target, pxCurrentTCB, TYPE_STRUCT);
 
     // volatile StackType_t * pxTopOfStack;
-    APPEND_TARGET(target->content, pxCurrentTCB->pxTopOfStack);
+    APPEND_TARGET(target->content, pxCurrentTCB->pxTopOfStack, TYPE_VARIABLE);
 
     #if ( portUSING_MPU_WRAPPERS == 1 )
         // xMPU_SETTINGS xMPUSettings;
-        APPEND_TARGET(target->content, pxCurrentTCB->xMPUSettings);
+        APPEND_TARGET(target->content, pxCurrentTCB->xMPUSettings, TYPE_VARIABLE);
     #endif
 
     // ListItem_t xStateListItem;
-    APPEND_TARGET(target->content, pxCurrentTCB->xStateListItem);
+    APPEND_TARGET(target->content, pxCurrentTCB->xStateListItem, TYPE_VARIABLE);
 
     // ListItem_t xEventListItem;
-    APPEND_TARGET(target->content, pxCurrentTCB->xEventListItem);
+    APPEND_TARGET(target->content, pxCurrentTCB->xEventListItem, TYPE_VARIABLE);
 
     // UBaseType_t uxPriority;
-    APPEND_TARGET(target->content, pxCurrentTCB->uxPriority);
+    APPEND_TARGET(target->content, pxCurrentTCB->uxPriority, TYPE_VARIABLE);
     
     // StackType_t * pxStack;
-    APPEND_TARGET(target->content, pxCurrentTCB->pxStack);
+    APPEND_TARGET(target->content, pxCurrentTCB->pxStack, TYPE_VARIABLE);
 
     // char pcTaskName[ configMAX_TASK_NAME_LEN ];
-    APPEND_TARGET(target->content, pxCurrentTCB->pcTaskName);
+    APPEND_TARGET(target->content, pxCurrentTCB->pcTaskName, TYPE_VARIABLE);
     
     #if ( ( portSTACK_GROWTH > 0 ) || ( configRECORD_STACK_HIGH_ADDRESS == 1 ) )
         // StackType_t * pxEndOfStack;
-        APPEND_TARGET(target->content, pxCurrentTCB->pxEndOfStack);
+        APPEND_TARGET(target->content, pxCurrentTCB->pxEndOfStack, TYPE_VARIABLE);
     #endif
 
     #if ( portCRITICAL_NESTING_IN_TCB == 1 )
         // UBaseType_t uxCriticalNesting;
-        APPEND_TARGET(target->content, pxCurrentTCB->uxCriticalNesting);
+        APPEND_TARGET(target->content, pxCurrentTCB->uxCriticalNesting, TYPE_VARIABLE);
     #endif
 
     #if ( configUSE_TRACE_FACILITY == 1 )
         // UBaseType_t uxTCBNumber;
-        APPEND_TARGET(target->content, pxCurrentTCB->uxTCBNumber);
+        APPEND_TARGET(target->content, pxCurrentTCB->uxTCBNumber, TYPE_VARIABLE);
 
         // UBaseType_t uxTaskNumber;
-        APPEND_TARGET(target->content, pxCurrentTCB->uxTaskNumber);
+        APPEND_TARGET(target->content, pxCurrentTCB->uxTaskNumber, TYPE_VARIABLE);
     #endif
 
     #if ( configUSE_MUTEXES == 1 )
         // UBaseType_t uxBasePriority;
-        APPEND_TARGET(target->content, pxCurrentTCB->uxBasePriority);
+        APPEND_TARGET(target->content, pxCurrentTCB->uxBasePriority, TYPE_VARIABLE);
 
         // UBaseType_t uxMutexesHeld;
-        APPEND_TARGET(target->content, pxCurrentTCB->uxMutexesHeld);
+        APPEND_TARGET(target->content, pxCurrentTCB->uxMutexesHeld, TYPE_VARIABLE);
     #endif
 
     #if ( configUSE_APPLICATION_TASK_TAG == 1 )
         // TaskHookFunction_t pxTaskTag;
-        APPEND_TARGET(target->content, pxCurrentTCB->pxTaskTag);
+        APPEND_TARGET(target->content, pxCurrentTCB->pxTaskTag, TYPE_VARIABLE);
     #endif
 
     #if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0 )
         // void * pvThreadLocalStoragePointers[ configNUM_THREAD_LOCAL_STORAGE_POINTERS ];
-        APPEND_TARGET(target->content, pxCurrentTCB->pvThreadLocalStoragePointers);
+        APPEND_TARGET(target->content, pxCurrentTCB->pvThreadLocalStoragePointers, TYPE_VARIABLE);
     #endif
 
     #if ( configGENERATE_RUN_TIME_STATS == 1 )
         // uint32_t ulRunTimeCounter;
-        APPEND_TARGET(target->content, pxCurrentTCB->ulRunTimeCounter);
+        APPEND_TARGET(target->content, pxCurrentTCB->ulRunTimeCounter, TYPE_VARIABLE);
     #endif
 
     #if ( configUSE_NEWLIB_REENTRANT == 1 )
@@ -5524,25 +5560,25 @@ static target_t* read_TCB_targets(target_t *target) {
 
     #if ( configUSE_TASK_NOTIFICATIONS == 1 )
         // volatile uint32_t ulNotifiedValue[ configTASK_NOTIFICATION_ARRAY_ENTRIES ];
-        APPEND_TARGET(target->content, pxCurrentTCB->ulNotifiedValue);
+        APPEND_TARGET(target->content, pxCurrentTCB->ulNotifiedValue, TYPE_VARIABLE);
         
         // volatile uint8_t ucNotifyState[ configTASK_NOTIFICATION_ARRAY_ENTRIES ];
-        APPEND_TARGET(target->content, pxCurrentTCB->ucNotifyState);
+        APPEND_TARGET(target->content, pxCurrentTCB->ucNotifyState, TYPE_VARIABLE);
     #endif
 
     #if ( tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE != 0 )
         // uint8_t ucStaticallyAllocated;
-        APPEND_TARGET(target->content, pxCurrentTCB->ucStaticallyAllocated);
+        APPEND_TARGET(target->content, pxCurrentTCB->ucStaticallyAllocated, TYPE_VARIABLE);
     #endif
 
     #if ( INCLUDE_xTaskAbortDelay == 1 )
         // uint8_t ucDelayAborted;
-        APPEND_TARGET(target->content, pxCurrentTCB->ucDelayAborted);
+        APPEND_TARGET(target->content, pxCurrentTCB->ucDelayAborted, TYPE_VARIABLE);
     #endif
 
     #if ( configUSE_POSIX_ERRNO == 1 )
         // int iTaskErrno;
-        APPEND_TARGET(target->content, pxCurrentTCB->iTaskErrno);
+        APPEND_TARGET(target->content, pxCurrentTCB->iTaskErrno, TYPE_VARIABLE);
     #endif
 
     return target;
