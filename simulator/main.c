@@ -50,6 +50,8 @@
 /* Platform dependent ASM utilities */
 #include "asm.h"
 
+#include "injector.h"
+
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
 as this demo could easily create one large heap region instead of multiple
@@ -111,6 +113,19 @@ static BaseType_t xTraceRunning = pdTRUE;
 
 int main(void)
 {
+	target_t *tmp = read_tasks_targets(NULL);
+
+	while (tmp) {
+
+		printf("%-24s (address: 0x%08x, size: 0x%02x)\n", tmp->name, tmp->address, tmp->size);
+
+		for (target_t *child = tmp->content; child; child = child->next) {
+			printf("  --> \t%-24s (address: 0x%08x, size: 0x%02x)\n", child->name, child->address, child->size);
+		}
+
+		tmp = tmp->next;
+	}
+
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
 	http://www.freertos.org/a00111.html for an explanation. */

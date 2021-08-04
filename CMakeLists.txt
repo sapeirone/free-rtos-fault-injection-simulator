@@ -20,6 +20,9 @@ include_directories(${FREERTOS_DIR}/Demo/Common/include)
 
 include_directories(./simulator/)
 
+# injector specific import
+include_directories(${KERNEL_DIR}/injector/include)
+
 # unix-specific includes
 if (UNIX)
     include_directories(./simulator/Posix)
@@ -32,6 +35,7 @@ endif()
 
 file(GLOB FreeRTOS_src ${KERNEL_DIR}/*.c)
 list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MemMang/heap_5.c)
+list(APPEND FreeRTOS_src ${KERNEL_DIR}/injector/common.c)
 
 # unix-specific kernel code
 if (UNIX) 
