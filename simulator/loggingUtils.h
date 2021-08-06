@@ -1,6 +1,6 @@
 #ifndef LOGGING_UTILS
 #define LOGGING_UTILS
 
-void loggingFunction(void);
+void loggingFunction(int logCause);
 
 #endif

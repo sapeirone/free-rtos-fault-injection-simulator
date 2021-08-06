@@ -132,6 +132,7 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 
 /* Overriding Trace Hook Macros implemented in this file */
 #include "loggingUtils.h"
-#define traceTASK_SWITCHED_OUT() loggingFunction()
+#define traceTASK_SWITCHED_OUT() loggingFunction(0)
+#define traceTASK_SWITCHED_IN() loggingFunction(1)
 
 #endif /* FREERTOS_CONFIG_H */
