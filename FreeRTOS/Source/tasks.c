@@ -5417,7 +5417,7 @@ target_t * read_tasks_targets(target_t *target) {
     target = read_TCB_targets(target);
 
     // PRIVILEGED_DATA static List_t pxReadyTasksLists[ configMAX_PRIORITIES ];
-    APPEND_TARGET(target, pxReadyTasksLists, TYPE_LIST); // TODO: lists of lists
+    APPEND_ARRAY_TARGET(target, pxReadyTasksLists, TYPE_LIST | TYPE_ARRAY, configMAX_PRIORITIES); // TODO: lists of lists
     
     // PRIVILEGED_DATA static List_t xDelayedTaskList1;
     APPEND_TARGET(target, xDelayedTaskList1, TYPE_LIST);
@@ -5426,10 +5426,10 @@ target_t * read_tasks_targets(target_t *target) {
     APPEND_TARGET(target, xDelayedTaskList2, TYPE_LIST);
 
     // PRIVILEGED_DATA static List_t * volatile pxDelayedTaskList;
-    APPEND_TARGET(target, pxDelayedTaskList, TYPE_LIST);
+    APPEND_TARGET(target, pxDelayedTaskList, TYPE_LIST | TYPE_POINTER);
 
     // PRIVILEGED_DATA static List_t * volatile pxOverflowDelayedTaskList;
-    APPEND_TARGET(target, pxOverflowDelayedTaskList, TYPE_LIST);
+    APPEND_TARGET(target, pxOverflowDelayedTaskList, TYPE_LIST | TYPE_POINTER);
 
     // PRIVILEGED_DATA static List_t xPendingReadyList;
     APPEND_TARGET(target, xPendingReadyList, TYPE_LIST);
@@ -5487,10 +5487,10 @@ target_t * read_tasks_targets(target_t *target) {
 
 static target_t* read_TCB_targets(target_t *target) {
 
-    APPEND_TARGET(target, pxCurrentTCB, TYPE_STRUCT);
+    APPEND_TARGET(target, pxCurrentTCB, TYPE_STRUCT | TYPE_POINTER);
 
     // volatile StackType_t * pxTopOfStack;
-    APPEND_TARGET(target->content, pxCurrentTCB->pxTopOfStack, TYPE_VARIABLE);
+    APPEND_TARGET(target->content, pxCurrentTCB->pxTopOfStack, TYPE_VARIABLE | TYPE_POINTER);
 
     #if ( portUSING_MPU_WRAPPERS == 1 )
         // xMPU_SETTINGS xMPUSettings;
@@ -5507,7 +5507,7 @@ static target_t* read_TCB_targets(target_t *target) {
     APPEND_TARGET(target->content, pxCurrentTCB->uxPriority, TYPE_VARIABLE);
     
     // StackType_t * pxStack;
-    APPEND_TARGET(target->content, pxCurrentTCB->pxStack, TYPE_VARIABLE);
+    APPEND_TARGET(target->content, pxCurrentTCB->pxStack, TYPE_VARIABLE | TYPE_POINTER);
 
     // char pcTaskName[ configMAX_TASK_NAME_LEN ];
     APPEND_TARGET(target->content, pxCurrentTCB->pcTaskName, TYPE_VARIABLE);
@@ -5545,7 +5545,7 @@ static target_t* read_TCB_targets(target_t *target) {
 
     #if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0 )
         // void * pvThreadLocalStoragePointers[ configNUM_THREAD_LOCAL_STORAGE_POINTERS ];
-        APPEND_TARGET(target->content, pxCurrentTCB->pvThreadLocalStoragePointers, TYPE_VARIABLE);
+        APPEND_ARRAY_TARGET(target->content, pxCurrentTCB->pvThreadLocalStoragePointers, TYPE_POINTER, configNUM_THREAD_LOCAL_STORAGE_POINTERS);
     #endif
 
     #if ( configGENERATE_RUN_TIME_STATS == 1 )
@@ -5560,10 +5560,10 @@ static target_t* read_TCB_targets(target_t *target) {
 
     #if ( configUSE_TASK_NOTIFICATIONS == 1 )
         // volatile uint32_t ulNotifiedValue[ configTASK_NOTIFICATION_ARRAY_ENTRIES ];
-        APPEND_TARGET(target->content, pxCurrentTCB->ulNotifiedValue, TYPE_VARIABLE);
+        APPEND_ARRAY_TARGET(target->content, pxCurrentTCB->ulNotifiedValue, TYPE_VARIABLE | TYPE_ARRAY, configTASK_NOTIFICATION_ARRAY_ENTRIES);
         
         // volatile uint8_t ucNotifyState[ configTASK_NOTIFICATION_ARRAY_ENTRIES ];
-        APPEND_TARGET(target->content, pxCurrentTCB->ucNotifyState, TYPE_VARIABLE);
+        APPEND_ARRAY_TARGET(target->content, pxCurrentTCB->ucNotifyState, TYPE_VARIABLE | TYPE_ARRAY, configTASK_NOTIFICATION_ARRAY_ENTRIES);
     #endif
 
     #if ( tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE != 0 )

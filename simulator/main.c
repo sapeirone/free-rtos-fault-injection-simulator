@@ -113,15 +113,20 @@ static BaseType_t xTraceRunning = pdTRUE;
 
 int main(void)
 {
-	const char * target_type_names[] = { "STRUCT", "VARIABLE", "LIST"};
+	char buffer[64];
+	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
 	target_t *tmp = read_tasks_targets(NULL);
 
-	while (tmp) {
+	while (tmp)
+	{
 
-		printf("%-30s (address: 0x%08x, size: 0x%08x, type: %s)\n", tmp->name, tmp->address, tmp->size, target_type_names[tmp->type]);
+		pretty_print_target_type(tmp->type, buffer);
+		printf("%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", tmp->name, tmp->address, tmp->size, tmp->nmemb, buffer);
 
-		for (target_t *child = tmp->content; child; child = child->next) {
-			printf("  --> \t%-30s (address: 0x%08x, size: 0x%08x, type: %s)\n", child->name, child->address, child->size, target_type_names[child->type]);
+		for (target_t *child = tmp->content; child; child = child->next)
+		{
+			pretty_print_target_type(child->type, buffer);
+			printf("  --> \t%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", child->name, child->address, child->size, tmp->nmemb, buffer);
 		}
 
 		tmp = tmp->next;
