@@ -36,7 +36,7 @@ struct target_s
     void *address;
     unsigned int size;  // size of an element
     unsigned int nmemb; // number of elements (only for arrays)
-    target_type_t type;
+    unsigned int type;
     struct target_s *content;
     struct target_s *next;
 };
