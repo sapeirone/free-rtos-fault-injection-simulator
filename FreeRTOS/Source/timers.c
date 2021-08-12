@@ -39,6 +39,9 @@
 #include "queue.h"
 #include "timers.h"
 
+/* Injector includes */
+#include <injector.h>
+
 #if ( INCLUDE_xTimerPendFunctionCall == 1 ) && ( configUSE_TIMERS == 0 )
     #error configUSE_TIMERS must be set to 1 to make the xTimerPendFunctionCall() function available.
 #endif
@@ -1116,3 +1119,33 @@
  * to include software timer functionality.  If you want to include software timer
  * functionality then ensure configUSE_TIMERS is set to 1 in FreeRTOSConfig.h. */
 #endif /* configUSE_TIMERS == 1 */
+
+
+#ifdef INJECTOR_ENABLED 
+
+target_t * read_timer_targets(target_t *target) {
+    // static List_t xActiveTimerList1;
+    APPEND_TARGET(target, xActiveTimerList1, TYPE_LIST);
+
+    // static List_t xActiveTimerList2;
+    APPEND_TARGET(target, xActiveTimerList2, TYPE_LIST);
+    
+    // static List_t * pxCurrentTimerList;
+    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER);
+
+    // static List_t * pxCurrentTimerList;
+    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER);
+
+    // static List_t * pxOverflowTimerList;
+    APPEND_TARGET(target, pxOverflowTimerList, TYPE_LIST | TYPE_POINTER);
+
+    // static QueueHandle_t xTimerQueue;
+    // initialized in prvCheckForValidListAndQueue (timers.c)
+    APPEND_TARGET(target, xTimerQueue, TYPE_VARIABLE);
+    
+    // static TaskHandle_t xTimerTaskHandle;
+    // initialized in xTimerCreateTimerTask (timers.c)
+    APPEND_TARGET(target, xTimerTaskHandle, TYPE_VARIABLE);
+}
+
+#endif

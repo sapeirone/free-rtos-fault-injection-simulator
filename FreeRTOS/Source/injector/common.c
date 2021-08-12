@@ -36,7 +36,8 @@ void pretty_print_target_type(unsigned int type, char *buffer)
     {
         if (type & (1 << index))
         {
-            if (buffer[0]) strcat(buffer, " | ");
+            if (buffer[0])
+                strcat(buffer, " | ");
             strcat(buffer, type_literals[index]);
         }
     }

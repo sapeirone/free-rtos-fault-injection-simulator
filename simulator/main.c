@@ -116,6 +116,7 @@ int main(void)
 	char buffer[64];
 	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
 	target_t *tmp = read_tasks_targets(NULL);
+	tmp = read_timer_targets(tmp);
 
 	while (tmp)
 	{

@@ -48,6 +48,11 @@ typedef struct target_s target_t;
  */
 target_t *read_tasks_targets(target_t *list);
 
+/**
+ * Read injection targets (global variables) from timers.c
+ */
+target_t *read_timer_targets(target_t *list);
+
 target_t *create_target(const char *name, void *address, target_type_t type,
                         unsigned int size, target_t *content, target_t *next, unsigned int nmemb);
 
