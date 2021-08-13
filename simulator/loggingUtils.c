@@ -1,20 +1,20 @@
 #include "loggingUtils.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #define LENBUF 1024
 
 void loggingFunction(int logCause){
-    /*
-    static signed char buffer[LENBUF];
-    vTaskGetRunTimeStats(buffer);
-    printf( "\nTask\t\tAbs\t\t\t%%\n" );
-    printf( "-------------------------------------------------------------\n" );
-    vPrintMultipleLines( buffer );
-    */
+    
+    unsigned long runTimeCounterValue = ulGetRunTimeCounterValue();
+    static signed char bufferTCB[ LENBUF ];
+    vTaskGetCurrentTCBStats(bufferTCB);
+
     switch(logCause){
         case 0:
-            printf("Case 0\n");
+            printf("%lu\t[OUT]\t%s\n", runTimeCounterValue, bufferTCB);
             break;
         case 1:
-            printf("Case 1\n");
+            printf("%lu\t[IN]\t%s\n", runTimeCounterValue, bufferTCB);
             break;
         default:
             printf("Default case\n");
