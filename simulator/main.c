@@ -113,25 +113,50 @@ static BaseType_t xTraceRunning = pdTRUE;
 
 int main(void)
 {
-	char buffer[64];
+	char buffer[64], user[64];
+	int index = 0;
 	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
 	target_t *tmp = read_tasks_targets(NULL);
 	tmp = read_timer_targets(tmp);
+	target_t *selection = tmp;
 
 	while (tmp)
 	{
 
 		pretty_print_target_type(tmp->type, buffer);
-		printf("%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", tmp->name, tmp->address, tmp->size, tmp->nmemb, buffer);
+		printf("%d %-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", tmp->id, tmp->name, tmp->address, tmp->size, tmp->nmemb, buffer);
 
 		for (target_t *child = tmp->content; child; child = child->next)
 		{
 			pretty_print_target_type(child->type, buffer);
-			printf("  --> \t%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", child->name, child->address, child->size, tmp->nmemb, buffer);
+			printf("  --> \t %d %-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", child->id, child->name, child->address, child->size, tmp->nmemb, buffer);
 		}
 
 		tmp = tmp->next;
 	}
+
+	printf("Select injection target:\n");
+
+	fgets(user, 64, stdin);
+	sscanf(user, "%d", &index);
+
+		while (selection)
+	{
+
+		if(selection->id==index){
+			injectonFunction(selection);
+		}
+
+		for (target_t *child = selection->content; child; child = child->next)
+		{
+			if(child->id==index){
+				injectonFunction(child);
+			}
+		}
+
+		selection = selection->next;
+	}
+	
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
