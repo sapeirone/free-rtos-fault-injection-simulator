@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 	for(int i = 0; i < icI; ++i){
 		unsigned long estTimeMin = icS[i].nInjections * nTicksGoldenEx;
 		unsigned long estTimeMax = estTimeMin * 3; //300% of golden execution time, for each injection in the campaign
-		fprintf(stdout, "%s\t%d\t%lf\t%lf\t%s\t%lu\t%lu", icS[icI].targetStructure, icS[icI].nInjections, 
+		fprintf(stdout, "%s\t%d\t%lf\t%lf\t%s\t%lu\t%lu\n", icS[icI].targetStructure, icS[icI].nInjections, 
 				icS[icI].medTimeRange, icS[icI].variance, icS[icI].distr, estTimeMin, estTimeMax);
 		estTotTimeMin += estTimeMin;
 		estTotTimeMax += estTimeMax;
@@ -225,10 +225,34 @@ int main(int argc, char **argv)
 	Completing injection campaigns advances a general completion bar.
 	*/
 
+	/* Free the icS structure of injection campaigns allocated when reading the "input.csv" file */
+    free(icS);
+
 	/*
 	Once all the injection campaigns have been completed, the forefather opens the output file and
 	prints on screen some statistics.
 	*/
+	FILE *stfp = NULL;
+	long lSize;
+	injectionCampaign_t stBuffer;
+
+	stfp = fopen ("results.dat" , "rb" );
+	if (stfp == NULL){
+		fprintf(stderr, "Couldn't open golden execution results file.\n");
+		return 3;
+	}
+
+	fprintf(stdout, "Execution statistics:\nTarget\tCrash\tHang\tSilent\tDelay\tNoError\n")
+	for(int i = 0; i < icI; ++i){
+		fread(stBuffer, sizeof(injectionCampaign_t), 1, stfp);
+		fprintf(stdout, "%s\t%.3lu\t%.3lu\t%.3lu\t%.3lu\t%.3lu\n", stBuffer[i].targetStructure,
+				stBuffer[i].res.nCrash / stBuffer[i].nInjections, stBuffer[i].res.nHang / stBuffer[i].nInjections,
+				stBuffer[i].res.nSilent / stBuffer[i].nInjections, stBuffer[i].res.nDelay / stBuffer[i].nInjections,
+				stBuffer[i].res.nNoError / stBuffer[i].nInjections);
+	}
+
+	// terminate
+	fclose (stfp);
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
@@ -240,9 +264,6 @@ int main(int argc, char **argv)
 	// vTraceEnable(TRC_START);
 
 	main_blinky();
-
-	/* Free the icS structure of injection campaigns allocated when reading the "input.csv" file */
-    free(icS);
 
 	return 0;
 }
