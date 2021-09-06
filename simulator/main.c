@@ -61,6 +61,7 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
 #define mainREGION_2_SIZE 29905
 #define mainREGION_3_SIZE 7807
 
+
 /*-----------------------------------------------------------*/
 
 extern void main_blinky(void);
@@ -114,7 +115,7 @@ static BaseType_t xTraceRunning = pdTRUE;
 int main(void)
 {
 	char buffer[64], user[64];
-	int index = 0;
+	int index = 0, time=0, delta=0, nTests=0;
 	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
 	target_t *tmp = read_tasks_targets(NULL);
 	tmp = read_timer_targets(tmp);
@@ -137,26 +138,55 @@ int main(void)
 
 	printf("Select injection target:\n");
 
-	fgets(user, 64, stdin);
-	sscanf(user, "%d", &index);
+	fgets(user, 64, stdin); //use file to define injection campaign
+	sscanf(user, "%d %d %d %d", &index, &nTests, &time, &delta);
 
-		while (selection)
+
+while(nTests>0){
+
+	int start=10;
+	int queue=nTests-start;
+
+	if(fork()){
+		queue--;
+		if(queue>0){
+			continue;
+		}else{
+			while(queue<10){
+				wait();
+				queue++;
+			}
+			nTests-=10;
+		}
+
+	}else{
+
+				while (selection)
 	{
 
 		if(selection->id==index){
-			injectonFunction(selection);
+			injectonFunction(selection, time, delta);
 		}
 
 		for (target_t *child = selection->content; child; child = child->next)
 		{
 			if(child->id==index){
-				injectonFunction(child);
+				injectonFunction(child, time, delta);
 			}
 		}
 
 		selection = selection->next;
 	}
 	
+if(selection==NULL){
+	printf("failed to find target, please specify existing values in selection file");
+	exit(EXIT_FAILURE);
+}else{
+	exit(0);
+}
+
+	}
+}
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
