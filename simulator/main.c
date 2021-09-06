@@ -119,6 +119,20 @@ static void printInjectionTarget (FILE *output, const target_t *target, const in
 
 int main(int argc, char **argv)
 {
+	/**
+	 * Read the available injection targets from the tasks and timer modules.
+	 * 
+	 * TODO: possibly add more injection targets.
+	 */
+	target_t *targets = read_tasks_targets(NULL);
+	targets = read_timer_targets(targets);
+
+	if (argc > 1 && strcmp(argv[1], "--list") == 0)
+	{
+		listInjectionTargets("targets.txt", targets);
+		exit(0);
+	}
+
 	/*
 	Option --Force re-executes forcibly the golden execution
 	Option --List prints out all the possible targets for the injection campaign (fork + data collection)
@@ -188,20 +202,6 @@ int main(int argc, char **argv)
 	Once all the injection campaigns have been completed, the forefather opens the output file and
 	prints on screen some statistics.
 	*/
-
-	/**
-	 * Read the available injection targets from the tasks and timer modules.
-	 * 
-	 * TODO: possibly add more injection targets.
-	 */
-	target_t *targets = read_tasks_targets(NULL);
-	targets = read_timer_targets(targets);
-
-	if (argc > 1 && strcmp(argv[1], "--list") == 0)
-	{
-		listInjectionTargets("targets.txt", targets);
-		exit(0);
-	}
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
