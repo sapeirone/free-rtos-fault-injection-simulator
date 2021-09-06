@@ -111,6 +111,57 @@ static BaseType_t xTraceRunning = pdTRUE;
 
 int main(void)
 {
+	/*
+	Option --Force re-executes forcibly the golden execution
+	Option --List prints out all the possible targets for the injection campaign (fork + data collection)
+	Option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
+	*/
+
+	/*
+	Generate the golden execution process and collect results if no previous
+	golden execution output has been found or if --Force is used
+	*/
+
+	/*
+	Read from file the injection details which is the target structure, how many injections have
+	to be tested, the median of the time range, the variance over the time range and the distribution
+	(by default a Gaussian).
+	Prototype of the input .csv:
+	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
+	Returns a list of struct injection campaigns.
+	typedef struct injectionCampaign {
+		char * targetStructure, * distr;
+		int nInjections;
+		double medTimeRange, variance;
+		injectionResults_t res;
+	} injectionCampaign_t;
+	typedef struct injectionResults {
+		int nCrash, nHang, nSilent, nDelay, nNoError;
+	} injectionResults_t;
+	*/
+
+	/*
+	Print out an time extimation of minimum and maximum execution times for the whole simulation.
+	The user must input (Y/n) to confirm execution.
+	*/
+
+	/*
+	For each line in the input .csv, generate a injection campaign.
+	A for loop launches the iFork() of the forefather.
+	Each father (son of the forefather), launches a thread instance of the FreeRTOS + Injector.
+	The forefather waits for the father: if the return value of the wait is different from 0, the
+	forefatehr adds 1 to the "crash" entry for that campaign.
+	Each father awaits the 300% golden execution time and then reads the trace, unless the FreeRTOS returned
+	by itself sooner. The father decides which termination has been performed and increases the relative
+	statistic in the memory mapped file for that campaign.
+	Completing injection campaigns advances a general completion bar.
+	*/
+
+	/*
+	Once all the injection campaigns have been completed, the forefather opens the output file and
+	prints on screen some statistics.
+	*/
+
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
 	http://www.freertos.org/a00111.html for an explanation. */
