@@ -188,6 +188,30 @@ int main(int argc, char **argv)
 	Print out an time extimation of minimum and maximum execution times for the whole simulation.
 	The user must input (Y/n) to confirm execution.
 	*/
+	FILE *tefp = NULL;
+	char teBuffer[LENBUF];
+	unsigned long nTicksGoldenEx = 0, estTotTimeMin = 0, estTotTimeMax = 0;
+
+	tefp = fopen("golden.txt", "r");
+	if(tefp == NULL){
+		fprintf(stderr, "Couldn't open golden execution results file.\n");
+		return 2;
+	}
+	fgets(feBuffer, LENBUF - 1, tefp);
+	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
+
+	fprintf(stdout, "Estimated execution times:\nTarget\tnExecs\ttMed\tvar\tdistr\testTimeMin\testTimeMax");
+	for(int i = 0; i < icI; ++i){
+		unsigned long estTimeMin = icS[i].nInjections * nTicksGoldenEx;
+		unsigned long estTimeMax = estTimeMin * 3; //300% of golden execution time, for each injection in the campaign
+		fprintf(stdout, "%s\t%d\t%lf\t%lf\t%s\t%lu\t%lu", icS[icI].targetStructure, icS[icI].nInjections, 
+				icS[icI].medTimeRange, icS[icI].variance, icS[icI].distr, estTimeMin, estTimeMax);
+		estTotTimeMin += estTimeMin;
+		estTotTimeMax += estTimeMax;
+	}
+	fprintf(stdout, "TOTAL\t_\t_\t_\t_\t%lu\t%lu");
+
+	fclose(tefp);
 
 	/*
 	For each line in the input .csv, generate a injection campaign.
