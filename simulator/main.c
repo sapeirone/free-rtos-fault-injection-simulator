@@ -124,12 +124,15 @@ int main(int argc, char **argv)
 	 * 
 	 * TODO: possibly add more injection targets.
 	 */
-	target_t *targets = read_tasks_targets(NULL);
-	targets = read_timer_targets(targets);
 
 	if (argc > 1 && strcmp(argv[1], "--list") == 0)
 	{
+		target_t *targets = read_tasks_targets(NULL);
+		targets = read_timer_targets(targets);
+
 		listInjectionTargets("targets.txt", targets);
+		
+		freeInjectionTargets(targets);
 		exit(0);
 	}
 

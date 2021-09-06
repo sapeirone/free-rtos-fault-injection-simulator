@@ -46,3 +46,18 @@ void pretty_print_target_type(unsigned int type, char *buffer)
     if (n && buffer[n - 1] == ' ')
         buffer[n - 2] = '\0';
 }
+
+void freeInjectionTargets(target_t *target)
+{
+    if (target->next)
+    {
+        freeInjectionTargets(target->next);
+    }
+
+    if (target->content)
+    {
+        freeInjectionTargets(target->content);
+    }
+
+    free(target);
+}

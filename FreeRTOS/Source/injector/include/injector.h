@@ -58,6 +58,8 @@ target_t *create_target(const char *name, void *address, target_type_t type,
 
 void pretty_print_target_type (unsigned int type, char *buffer);
 
+void freeInjectionTargets(target_t *target);
+
 // #define NAME_OF(var) (#var)
 #define nameof(var) (strrchr(#var, '>') ? (1 + strrchr(#var, '>')) : #var)
 
