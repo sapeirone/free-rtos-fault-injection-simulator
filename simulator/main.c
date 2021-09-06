@@ -150,6 +150,7 @@ int main(void)
 	Prototype of the input .csv:
 	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
 	Returns a list of struct injection campaigns.
+	*/
 	typedef struct injectionCampaign {
 		char * targetStructure, * distr;
 		int nInjections;
@@ -159,7 +160,25 @@ int main(void)
 	typedef struct injectionResults {
 		int nCrash, nHang, nSilent, nDelay, nNoError;
 	} injectionResults_t;
-	*/
+
+	int icI = 0;
+	FILE *icfp = NULL;
+	char icBuffer[LENBUF];
+	injectionCampaign_t *icS = (injectionCampaign_t *) malloc(0);
+
+	icfp = fopen("input.csv", "r");
+	if(icfp == NULL){
+		fprintf(stderr, "Couldn't open input file.\n");
+		return 1;
+	}
+	
+	while(fgets(icBuffer, LENBUF - 1, icfp) != NULL){
+		icS = (injectionCampaign_t *)realloc((icI+1) * sizeof(injectionCampaign_t));
+		sscanf(icBuffer, "%s;%d;%lf;%lf;%s;", icS[icI].targetStructure, &icS[icI].nInjections, 
+				&icS[icI].medTimeRange, &icS[icI].variance, icS[icI].distr);
+		++icI;
+	}
+	fclose(icfp);
 
 	/*
 	Print out an time extimation of minimum and maximum execution times for the whole simulation.
@@ -193,6 +212,9 @@ int main(void)
 	// vTraceEnable(TRC_START);
 
 	main_blinky();
+
+	/* Free the icS structure of injection campaigns allocated when reading the "input.csv" file */
+    free(icS);
 
 	return 0;
 }
