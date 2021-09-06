@@ -42,6 +42,7 @@
 /* Standard includes. */
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -109,29 +110,15 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 /* Notes if the trace is running or not. */
 static BaseType_t xTraceRunning = pdTRUE;
 
+static void listInjectionTargets (const char* outputFilename, const target_t *target);
+static void printInjectionTarget (FILE *output, const target_t *target, const int depth);
+
+#define LENBUF 256
+
 /*-----------------------------------------------------------*/
 
-int main(void)
+int main(int argc, char **argv)
 {
-	char buffer[64];
-	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
-	target_t *tmp = read_tasks_targets(NULL);
-	tmp = read_timer_targets(tmp);
-
-	while (tmp)
-	{
-
-		pretty_print_target_type(tmp->type, buffer);
-		printf("%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", tmp->name, tmp->address, tmp->size, tmp->nmemb, buffer);
-
-		for (target_t *child = tmp->content; child; child = child->next)
-		{
-			pretty_print_target_type(child->type, buffer);
-			printf("  --> \t%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", child->name, child->address, child->size, tmp->nmemb, buffer);
-		}
-
-		tmp = tmp->next;
-	}
 	/*
 	Option --Force re-executes forcibly the golden execution
 	Option --List prints out all the possible targets for the injection campaign (fork + data collection)
@@ -151,15 +138,15 @@ int main(void)
 	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
 	Returns a list of struct injection campaigns.
 	*/
+	typedef struct injectionResults {
+		int nCrash, nHang, nSilent, nDelay, nNoError;
+	} injectionResults_t;
 	typedef struct injectionCampaign {
 		char * targetStructure, * distr;
 		int nInjections;
 		double medTimeRange, variance;
 		injectionResults_t res;
 	} injectionCampaign_t;
-	typedef struct injectionResults {
-		int nCrash, nHang, nSilent, nDelay, nNoError;
-	} injectionResults_t;
 
 	int icI = 0;
 	FILE *icfp = NULL;
@@ -173,7 +160,7 @@ int main(void)
 	}
 	
 	while(fgets(icBuffer, LENBUF - 1, icfp) != NULL){
-		icS = (injectionCampaign_t *)realloc((icI+1) * sizeof(injectionCampaign_t));
+		icS = (injectionCampaign_t *)realloc(icS, (icI+1) * sizeof(injectionCampaign_t));
 		sscanf(icBuffer, "%s;%d;%lf;%lf;%s;", icS[icI].targetStructure, &icS[icI].nInjections, 
 				&icS[icI].medTimeRange, &icS[icI].variance, icS[icI].distr);
 		++icI;
@@ -201,6 +188,20 @@ int main(void)
 	Once all the injection campaigns have been completed, the forefather opens the output file and
 	prints on screen some statistics.
 	*/
+
+	/**
+	 * Read the available injection targets from the tasks and timer modules.
+	 * 
+	 * TODO: possibly add more injection targets.
+	 */
+	target_t *targets = read_tasks_targets(NULL);
+	targets = read_timer_targets(targets);
+
+	if (argc > 1 && strcmp(argv[1], "--list") == 0)
+	{
+		listInjectionTargets("targets.txt", targets);
+		exit(0);
+	}
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
@@ -442,4 +443,53 @@ the stack and so not exists after this function exits. */
 	Note that, as the array is necessarily of type StackType_t,
 	configMINIMAL_STACK_SIZE is specified in words, not bytes. */
 	*pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+}
+
+static void listInjectionTargets(const char *outputFilename, const target_t *targets)
+{
+	char buf[256];
+
+	/**
+	 * Open the target output file
+	 */
+	FILE *outputFile = fopen(outputFilename, "w");
+	if (outputFile == NULL)
+	{
+		sprintf(buf, "Error opening the target file %s", outputFilename);
+		perror(buf);
+		exit(1);
+	}
+
+	/**
+	 * Iterate over the available injection targets
+	 */
+	printInjectionTarget(outputFile, targets, 0);
+
+	fclose(outputFile);
+}
+
+static void printInjectionTarget(FILE *output, const target_t *target, const int depth)
+{
+	char buf[1024], typeBuffer[256];
+
+	// Format the target type (example: "POINTER | LIST")
+	pretty_print_target_type(target->type, typeBuffer);
+
+	for (int i = 0; i < depth; i++)
+	{
+		fprintf(output, i == 0 ? "|--" : "--");
+	}
+
+	const char *fmt = "%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n";
+	fprintf(output, fmt, target->name, target->address, target->size, target->nmemb, typeBuffer);
+
+	for (target_t *child = target->content; child; child = child->next)
+	{
+		printInjectionTarget(output, child, depth + 1);
+	}
+
+	if (target->next)
+	{
+		printInjectionTarget(output, target->next, depth);
+	}
 }

@@ -58,3 +58,6 @@ build/
 *.a
 *.sln
 *.vcxproj*
+
+
+targets.txt
