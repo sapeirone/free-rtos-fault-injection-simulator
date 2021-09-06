@@ -60,9 +60,11 @@ endif()
 # platform-independent source code
 file(GLOB sources ./simulator/main.c)
 list(APPEND sources ./simulator/main_blinky.c)
+list(APPEND sources ./simulator/loggingUtils.c)
 
 if (UNIX) 
     # posix-dependent source code
+    list(APPEND sources ./simulator/Posix/run-time-stats-utils.c)
 elseif (WIN32)
     # win32-dependent source code
 	list(APPEND sources ./simulator/Win32/Run-time-stats-utils.c)

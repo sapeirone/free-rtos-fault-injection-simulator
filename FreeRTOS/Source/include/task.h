@@ -1883,6 +1883,7 @@ void vTaskList( char * pcWriteBuffer ) PRIVILEGED_FUNCTION;     /*lint !e971 Unq
  * \ingroup TaskUtils
  */
 void vTaskGetRunTimeStats( char * pcWriteBuffer ) PRIVILEGED_FUNCTION;     /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+void vTaskGetCurrentTCBStats( char * pcWriteBuffer) PRIVILEGED_FUNCTION;
 
 /**
  * task. h

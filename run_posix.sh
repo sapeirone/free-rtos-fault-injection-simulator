@@ -2,7 +2,7 @@
 
 echo "Building Posix target..."
 
-rm CMakeCache.txt
+rm -f CMakeCache.txt
 cmake .
 make
 

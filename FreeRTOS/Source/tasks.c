@@ -4659,6 +4659,15 @@ static void prvResetNextTaskUnblockTime( void )
         }
     }
 
+/* Additional useful definitions to access TCB data */
+    void vTaskGetCurrentTCBStats( char * pcWriteBuffer)
+    {
+        *pcWriteBuffer = ( char ) 0x00;
+        sprintf( pcWriteBuffer, "%s", pxCurrentTCB->pcTaskName);
+    }
+
+
+
 #endif /* ( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) ) */
 /*-----------------------------------------------------------*/
 

@@ -130,4 +130,13 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 /* Include the FreeRTOS+Trace FreeRTOS trace macro definitions. */
 // #include "trcRecorder.h"
 
+/* Overriding Trace Hook Macros implemented in this file */
+#include "loggingUtils.h"
+#define traceTASK_SWITCHED_OUT() loggingFunction(0)
+#define traceTASK_SWITCHED_IN() loggingFunction(1)
+#define traceQUEUE_SEND_FAILED(pxQueue) loggingFunction(2)
+#define traceQUEUE_RECEIVE_FAILED(pxQueue) loggingFunction(3)
+#define traceQUEUE_SEND_FROM_ISR_FAILED(pxQueue) loggingFunction(4)
+#define traceQUEUE_RECEIVE_FROM_ISR_FAILED(pxQueue) loggingFunction(5)
+
 #endif /* FREERTOS_CONFIG_H */
