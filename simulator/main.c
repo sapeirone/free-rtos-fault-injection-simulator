@@ -54,6 +54,7 @@
 
 #include "injector.h"
 #include "fork.h"
+#include "thread.h"
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
@@ -113,10 +114,23 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 /* Notes if the trace is running or not. */
 static BaseType_t xTraceRunning = pdTRUE;
 
+typedef struct injectionResults {
+	int nCrash, nHang, nSilent, nDelay, nNoError;
+} injectionResults_t;
+
+typedef struct injectionCampaign {
+	char * targetStructure, * distr;
+	int nInjections;
+	unsigned long medTimeRange, variance;
+	injectionResults_t res;
+} injectionCampaign_t;
+
 static void printApplicationArguments (int argc, char **argv);
 
 static void listInjectionTargets (const char* outputFilename, const target_t *target);
 static void printInjectionTarget (FILE *output, const target_t *target, const int depth);
+
+target_t * getInjectionTarget(const target_t *target, char * toSearch)
 
 #define LENBUF 256
 
@@ -142,7 +156,27 @@ int main(int argc, char **argv)
 		freeInjectionTargets(targets);
 		exit(0);
 	} else if (argc > 1 && strcmp(argv[1], "--run") == 0) {
-		printf("--run invoked\n");
+		if(argc != 6){
+			fprintf(stdout, "Invalid number of arguments for --run.\n");
+			return 7;
+		}
+
+		thread_t thID;
+		if(launchThread(injectorFunction, argv[2], argv[3], argv[4], argv[5], &thID) == INJECTOR_THREAD_FAILURE){
+			fprintf("Injectior thread launch failure.\n");
+			return 8;
+		}
+		detachThread(&thID);
+
+		/* Launch the FreeRTOS */
+		prvInitialiseHeap();
+		main_blinky();
+
+		/* Check trace and determine the outcome of the simulation */
+
+
+		/* Open the memory mapped file and increase the relative counter */
+
 		exit(42);
 	}
 
@@ -197,16 +231,6 @@ int main(int argc, char **argv)
 	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
 	Returns a list of struct injection campaigns.
 	*/
-	typedef struct injectionResults {
-		int nCrash, nHang, nSilent, nDelay, nNoError;
-	} injectionResults_t;
-	typedef struct injectionCampaign {
-		char * targetStructure, * distr;
-		int nInjections;
-		unsigned long medTimeRange, variance;
-		injectionResults_t res;
-	} injectionCampaign_t;
-
 	int icI = 0;
 	FILE *icfp = NULL;
 	char icBuffer[LENBUF];
@@ -293,24 +317,13 @@ int main(int argc, char **argv)
 			}
 
 			freeRTOSInstance instance;
-			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->address, injTime, offsetByte*offsetBit);
+			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->address, injTime, offsetByte, offsetBit);
 			if(pid < 0){
 				fprintf(stdout, "Couldn't create child process.\n");
 				return 6;
 			}
 			else if(pid > 0) { // Father process
 				waitFreeRTOSInjection(&instance);
-			}
-			else { // Child process
-				/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
-				is only used for test and example reasons.  Heap_4 is more appropriate.  See
-				http://www.freertos.org/a00111.html for an explanation. */
-				prvInitialiseHeap();
-
-				/* Initialise the trace recorder.  Use of the trace recorder is optional.
-				See http://www.FreeRTOS.org/trace for more information. */
-				// vTraceEnable(TRC_START);
-				main_blinky();
 			}
 		}
 	}

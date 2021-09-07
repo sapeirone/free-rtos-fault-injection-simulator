@@ -1,8 +1,8 @@
 #include "../../FreeRTOS/Source/injector/include/injector.h"
 
-void injectorFunction(void * target, unsigned long timeInj, unsigned long position)
+void injectorFunction(void * target, unsigned long timeInj, unsigned long offsetByte, unsigned long offsetBit)
 {
     nanosleep(timeInj);          //ready, waiting for injection
-    
-    target ^= (1 << position);   //inject
+
+    *(target + offsetByte) ^= (1<<offsetBit)
 }
