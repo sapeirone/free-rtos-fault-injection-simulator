@@ -136,7 +136,7 @@ int main(void)
 		tmp = tmp->next;
 	}
 
-	printf("Select injection target:\n");
+/*	printf("Select injection target:\n");
 
 	fgets(user, 64, stdin); //use file to define injection campaign
 	sscanf(user, "%d %d %d %d", &index, &nTests, &time, &delta);
@@ -186,7 +186,7 @@ if(selection==NULL){
 }
 
 	}
-}
+}*/
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See
