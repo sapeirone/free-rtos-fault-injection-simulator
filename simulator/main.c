@@ -120,27 +120,17 @@ static void printInjectionTarget (FILE *output, const target_t *target, const in
 
 int main(int argc, char **argv)
 {
-<<<<<<< HEAD
 	/**
 	 * Read the available injection targets from the tasks and timer modules.
 	 * 
 	 * TODO: possibly add more injection targets.
 	 */
-=======
-	char buffer[64], user[64];
-	int index = 0, time=0, delta=0, nTests=0;
-	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
-	target_t *tmp = read_tasks_targets(NULL);
-	tmp = read_timer_targets(tmp);
-	target_t *selection = tmp;
->>>>>>> injector-function
 
 	if (argc > 1 && strcmp(argv[1], "--list") == 0)
 	{
 		target_t *targets = read_tasks_targets(NULL);
 		targets = read_timer_targets(targets);
 
-<<<<<<< HEAD
 		listInjectionTargets("targets.txt", targets);
 		
 		freeInjectionTargets(targets);
@@ -194,16 +184,6 @@ int main(int argc, char **argv)
 		++icI;
 	}
 	fclose(icfp);
-=======
-		pretty_print_target_type(tmp->type, buffer);
-		printf("%d %-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", tmp->id, tmp->name, tmp->address, tmp->size, tmp->nmemb, buffer);
-
-		for (target_t *child = tmp->content; child; child = child->next)
-		{
-			pretty_print_target_type(child->type, buffer);
-			printf("  --> \t %d %-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", child->id, child->name, child->address, child->size, tmp->nmemb, buffer);
-		}
->>>>>>> injector-function
 
 	/*
 	Print out an time extimation of minimum and maximum execution times for the whole simulation.
