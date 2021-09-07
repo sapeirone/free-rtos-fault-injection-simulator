@@ -44,6 +44,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
+#pragma warning(disable:4996) // _CRT_SECURE_NO_WARNINGS
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -133,11 +135,9 @@ static void printApplicationArguments(int argc, char **argv);
 static void listInjectionTargets(const char *outputFilename, const target_t *target);
 static void printInjectionTarget(FILE *output, const target_t *target, const int depth);
 
-target_t *getInjectionTarget(const target_t *target, char *toSearch);
+target_t *getInjectionTarget(target_t *target, char *toSearch);
 
-static void runInjection(void *address, unsigned long injTime, unsigned long offsetByte, unsigned long offsetBit);
-
-#define LENBUF 256
+static void runInjection(const void *address, const unsigned long injTime, const unsigned long offsetByte, const unsigned long offsetBit);
 
 #define CMD_LIST "--list"
 #define CMD_RUN "--run"
@@ -226,7 +226,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	fclose(gefp);
+	if(gefp != NULL)
+		fclose(gefp);
 
 	/*
 	Read from file the injection details which is the target structure, how many injections have
@@ -251,7 +252,7 @@ int main(int argc, char **argv)
 	while (fgets(icBuffer, LENBUF - 1, icfp) != NULL)
 	{
 		icS = (injectionCampaign_t *)realloc(icS, (icI + 1) * sizeof(injectionCampaign_t));
-		sscanf(icBuffer, "%s;%d;%lf;%lf;%s;", icS[icI].targetStructure, &icS[icI].nInjections,
+		sscanf(icBuffer, "%s;%d;%lu;%lu;%s;", icS[icI].targetStructure, &icS[icI].nInjections,
 			   &icS[icI].medTimeRange, &icS[icI].variance, icS[icI].distr);
 		++icI;
 	}
@@ -279,12 +280,12 @@ int main(int argc, char **argv)
 	{
 		unsigned long estTimeMin = icS[i].nInjections * nTicksGoldenEx;
 		unsigned long estTimeMax = estTimeMin * 3; //300% of golden execution time, for each injection in the campaign
-		fprintf(stdout, "%s\t%d\t%lf\t%lf\t%s\t%lu\t%lu\n", icS[icI].targetStructure, icS[icI].nInjections,
+		fprintf(stdout, "%s\t%d\t%lu\t%lu\t%s\t%lu\t%lu\n", icS[icI].targetStructure, icS[icI].nInjections,
 				icS[icI].medTimeRange, icS[icI].variance, icS[icI].distr, estTimeMin, estTimeMax);
 		estTotTimeMin += estTimeMin;
 		estTotTimeMax += estTimeMax;
 	}
-	fprintf(stdout, "TOTAL\t_\t_\t_\t_\t%lu\t%lu");
+	fprintf(stdout, "TOTAL\t_\t_\t_\t_\t%lu\t%lu", estTotTimeMin, estTotTimeMax);
 
 	fclose(tefp);
 
@@ -310,7 +311,7 @@ int main(int argc, char **argv)
 				return 4;
 			}
 
-			srand(time(NULL));									 //generate random seed
+			srand((unsigned int) time(NULL));									 //generate random seed
 			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
@@ -324,7 +325,7 @@ int main(int argc, char **argv)
 			case 'u':
 			case 'U':														// Uniform
 				injTime = icS[i].medTimeRange;								//if delta!=0 select time in interval
-				injTime += rand() % 2 ? icS[i].variance : -icS[i].variance; //choose if before or after selected time
+				rand() % 2 ? (injTime += icS[i].variance) : (injTime = abs(injTime - (signed long) icS[i].variance)); //choose if before or after selected time
 				break;
 			default:
 				fprintf(stderr, "No distribution with name %s is available.\n", icS[i].distr);
@@ -353,7 +354,6 @@ int main(int argc, char **argv)
 	prints on screen some statistics.
 	*/
 	FILE *stfp = NULL;
-	long lSize;
 	injectionCampaign_t stBuffer;
 
 	stfp = fopen("results.dat", "rb");
@@ -629,7 +629,7 @@ static void listInjectionTargets(const char *outputFilename, const target_t *tar
 
 static void printInjectionTarget(FILE *output, const target_t *target, const int depth)
 {
-	char buf[1024], typeBuffer[256];
+	char typeBuffer[256];
 
 	// Format the target type (example: "POINTER | LIST")
 	pretty_print_target_type(target->type, typeBuffer);
@@ -653,7 +653,7 @@ static void printInjectionTarget(FILE *output, const target_t *target, const int
 	}
 }
 
-target_t *getInjectionTarget(const target_t *target, char *toSearch)
+target_t *getInjectionTarget(target_t *target, char *toSearch)
 {
 
 	target_t *tmp = target;
@@ -682,13 +682,12 @@ static void printApplicationArguments(int argc, char **argv)
 	printf("\n");
 }
 
-static void runInjection(void *address, unsigned long injTime, unsigned long offsetByte, unsigned long offsetBit)
+static void runInjection(const void *address, const unsigned long injTime, const unsigned long offsetByte, const unsigned long offsetBit)
 {
 	thread_t thID;
 	if (launchThread(&injectorFunction, address, injTime, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
 	{
 		fprintf(stdout, "Injectior thread launch failure.\n");
-		return 8;
 	}
 	detachThread(&thID);
 

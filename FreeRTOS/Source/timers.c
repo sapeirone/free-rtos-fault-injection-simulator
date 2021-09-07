@@ -1146,6 +1146,8 @@ target_t * read_timer_targets(target_t *target) {
     // static TaskHandle_t xTimerTaskHandle;
     // initialized in xTimerCreateTimerTask (timers.c)
     APPEND_TARGET(target, xTimerTaskHandle, TYPE_VARIABLE);
+
+    return target;
 }
 
 #endif

@@ -9,10 +9,10 @@
 #include "../thread.h"
 
 int launchThread(void * function,
-                void * address,
-                unsigned long injTime,
-                unsigned long offsetByte,
-                unsigned long offsetBit,
+                const void * address,
+                const unsigned long injTime,
+                const unsigned long offsetByte,
+                const unsigned long offsetBit,
                 thread_t * id){
     pthread_t thread_id;
     thData_t data = (thData_t) {address, injTime, offsetByte, offsetBit};

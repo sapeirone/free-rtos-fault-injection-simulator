@@ -8,7 +8,7 @@
 #include "fork_internal.h"
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
-                         const const char *injectorPath,
+                         const char *injectorPath,
                          const void *target,
                          const unsigned long time,
                          const unsigned long offsetByte,

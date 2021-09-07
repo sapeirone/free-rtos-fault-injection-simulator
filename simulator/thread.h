@@ -11,8 +11,8 @@ typedef struct thData_s {
     unsigned long injTime, offsetByte, offsetBit;
 } thData_t;
 
-int launchThread(void * function, void * address, unsigned long injTime, 
-                unsigned long offsetByte, unsigned long offsetBit, thread_t * id);
+int launchThread(void * function, const void * address, const unsigned long injTime, 
+                const unsigned long offsetByte, const unsigned long offsetBit, thread_t * id);
 
 int detachThread(thread_t * id);
 
