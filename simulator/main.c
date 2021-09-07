@@ -685,7 +685,7 @@ static void printApplicationArguments(int argc, char **argv)
 static void runInjection(const void *address, const unsigned long injTime, const unsigned long offsetByte, const unsigned long offsetBit)
 {
 	thread_t thID;
-	if (launchThread(&injectorFunction, address, injTime, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
+	if (address && launchThread(&injectorFunction, address, injTime, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
 	{
 		fprintf(stdout, "Injectior thread launch failure.\n");
 	}
