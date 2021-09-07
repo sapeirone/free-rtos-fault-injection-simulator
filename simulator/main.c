@@ -62,6 +62,7 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
 #define mainREGION_2_SIZE 29905
 #define mainREGION_3_SIZE 7807
 
+
 /*-----------------------------------------------------------*/
 
 extern void main_blinky(void);
@@ -119,17 +120,27 @@ static void printInjectionTarget (FILE *output, const target_t *target, const in
 
 int main(int argc, char **argv)
 {
+<<<<<<< HEAD
 	/**
 	 * Read the available injection targets from the tasks and timer modules.
 	 * 
 	 * TODO: possibly add more injection targets.
 	 */
+=======
+	char buffer[64], user[64];
+	int index = 0, time=0, delta=0, nTests=0;
+	const char *target_type_names[] = {"STRUCT", "VARIABLE", "LIST"};
+	target_t *tmp = read_tasks_targets(NULL);
+	tmp = read_timer_targets(tmp);
+	target_t *selection = tmp;
+>>>>>>> injector-function
 
 	if (argc > 1 && strcmp(argv[1], "--list") == 0)
 	{
 		target_t *targets = read_tasks_targets(NULL);
 		targets = read_timer_targets(targets);
 
+<<<<<<< HEAD
 		listInjectionTargets("targets.txt", targets);
 		
 		freeInjectionTargets(targets);
@@ -183,6 +194,16 @@ int main(int argc, char **argv)
 		++icI;
 	}
 	fclose(icfp);
+=======
+		pretty_print_target_type(tmp->type, buffer);
+		printf("%d %-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", tmp->id, tmp->name, tmp->address, tmp->size, tmp->nmemb, buffer);
+
+		for (target_t *child = tmp->content; child; child = child->next)
+		{
+			pretty_print_target_type(child->type, buffer);
+			printf("  --> \t %d %-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n", child->id, child->name, child->address, child->size, tmp->nmemb, buffer);
+		}
+>>>>>>> injector-function
 
 	/*
 	Print out an time extimation of minimum and maximum execution times for the whole simulation.
@@ -253,6 +274,58 @@ int main(int argc, char **argv)
 
 	// terminate
 	fclose (stfp);
+
+/*	printf("Select injection target:\n");
+
+	fgets(user, 64, stdin); //use file to define injection campaign
+	sscanf(user, "%d %d %d %d", &index, &nTests, &time, &delta);
+
+
+while(nTests>0){
+
+	int start=10;
+	int queue=nTests-start;
+
+	if(fork()){
+		queue--;
+		if(queue>0){
+			continue;
+		}else{
+			while(queue<10){
+				wait();
+				queue++;
+			}
+			nTests-=10;
+		}
+
+	}else{
+
+				while (selection)
+	{
+
+		if(selection->id==index){
+			injectonFunction(selection, time, delta);
+		}
+
+		for (target_t *child = selection->content; child; child = child->next)
+		{
+			if(child->id==index){
+				injectonFunction(child, time, delta);
+			}
+		}
+
+		selection = selection->next;
+	}
+	
+if(selection==NULL){
+	printf("failed to find target, please specify existing values in selection file");
+	exit(EXIT_FAILURE);
+}else{
+	exit(0);
+}
+
+	}
+}*/
 
 	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
 	is only used for test and example reasons.  Heap_4 is more appropriate.  See

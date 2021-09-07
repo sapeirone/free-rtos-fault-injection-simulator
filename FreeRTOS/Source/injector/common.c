@@ -2,6 +2,8 @@
 
 #include "injector.h"
 
+static int id = 1;
+
 target_t *create_target(const char *name, void *address, target_type_t type,
                         unsigned int size, target_t *content, target_t *next,
                         unsigned int nmemb)
@@ -10,6 +12,7 @@ target_t *create_target(const char *name, void *address, target_type_t type,
 
     if (target)
     {
+        target->id=id;
         target->name = name;
         target->address = address;
         target->type = type;
@@ -18,6 +21,8 @@ target_t *create_target(const char *name, void *address, target_type_t type,
         target->next = next;
         target->nmemb = nmemb;
     }
+
+    id++;
 
     return target;
 }

@@ -32,6 +32,7 @@ typedef enum
 
 struct target_s
 {
+    int id;
     const char *name;
     void *address;
     unsigned int size;  // size of an element

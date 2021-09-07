@@ -61,6 +61,7 @@ endif()
 file(GLOB sources ./simulator/main.c)
 list(APPEND sources ./simulator/main_blinky.c)
 list(APPEND sources ./simulator/loggingUtils.c)
+list(APPEND sources ./simulator/injection/injection.c)
 
 if (UNIX) 
     # posix-dependent source code
