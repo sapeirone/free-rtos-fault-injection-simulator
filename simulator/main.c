@@ -125,10 +125,11 @@ int main(int argc, char **argv)
 	 * 
 	 * TODO: possibly add more injection targets.
 	 */
+	target_t *targets = NULL;
 
 	if (argc > 1 && strcmp(argv[1], "--list") == 0)
 	{
-		target_t *targets = read_tasks_targets(NULL);
+		targets = read_tasks_targets(NULL);
 		targets = read_timer_targets(targets);
 
 		listInjectionTargets("targets.txt", targets);
@@ -138,8 +139,8 @@ int main(int argc, char **argv)
 	}
 
 	/*
-	Option --Force re-executes forcibly the golden execution
-	Option --List prints out all the possible targets for the injection campaign (fork + data collection)
+	Option --force re-executes forcibly the golden execution
+	Option --list prints out all the possible targets for the injection campaign (fork + data collection)
 	Option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
 	*/
 
@@ -147,6 +148,26 @@ int main(int argc, char **argv)
 	Generate the golden execution process and collect results if no previous
 	golden execution output has been found or if --Force is used
 	*/
+	FILE *gefp = NULL;
+	gefp = fopen("golden.txt", "r");
+
+	if (gefp == NULL || (argc > 1 && strcmp(argv[1], "--force") == 0)){
+		freeRTOSInstance instance;
+		int pid = runFreeRTOSInjection(&instance, NULL, NULL, 0, 0);
+		if(pid < 0){
+			fprintf(stdout, "Couldn't create golden execution process.\n");
+			return 7;
+		}
+		else if(pid > 0) { // Father process
+			waitFreeRTOSInjection(&instance);
+		}
+		else { // Child process
+			prvInitialiseHeap();
+			main_blinky();
+		}
+	}
+
+	fclose(gefp);
 
 	/*
 	Read from file the injection details which is the target structure, how many injections have
@@ -162,7 +183,7 @@ int main(int argc, char **argv)
 	typedef struct injectionCampaign {
 		char * targetStructure, * distr;
 		int nInjections;
-		double medTimeRange, variance;
+		unsigned long medTimeRange, variance;
 		injectionResults_t res;
 	} injectionCampaign_t;
 
@@ -225,6 +246,54 @@ int main(int argc, char **argv)
 	statistic in the memory mapped file for that campaign.
 	Completing injection campaigns advances a general completion bar.
 	*/
+	for(int i = 0; i < icI; ++i){ // For each injection campaign
+		for(int j = 0; j < icS[i].nInjections; ++j){ // For each injection in a campaign
+			target_t * injTarget = getInjectionTarget(targets, icS[i].targetStructure);
+			if(injTarget == NULL){
+				fprintf(stderr, "No target with name %s was found.\n", toSearch);
+				return 4;
+			}
+
+			srand(time(NULL));                              		//generate random seed
+			unsigned long offsetByte = rand() % injTarget->size;    //select byte to inject
+			unsigned long offsetBit = rand() % 8;                   //select bit to inject
+			unsigned long injTime;
+
+			switch(icS[i].distr[0]){ //Pick a distribution
+				case 'g':case'G': // Gaussian
+					// TODO
+					break;
+				case 'u':case 'U': // Uniform
+					injTime = icS[i].medTimeRange;          		            //if delta!=0 select time in interval
+					injTime += rand()%2 ? icS[i].variance : -icS[i].variance;  //choose if before or after selected time
+					break;
+				default:
+					fprintf(stderr, "No distribution with name %s is available.\n", icS[i].distr);
+					reaturn 5;
+			}
+
+			freeRTOSInstance instance;
+			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->address, injTime, offsetByte*offsetBit);
+			if(pid < 0){
+				fprintf(stdout, "Couldn't create child process.\n");
+				return 6;
+			}
+			else if(pid > 0) { // Father process
+				waitFreeRTOSInjection(&instance);
+			}
+			else { // Child process
+				/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
+				is only used for test and example reasons.  Heap_4 is more appropriate.  See
+				http://www.freertos.org/a00111.html for an explanation. */
+				prvInitialiseHeap();
+
+				/* Initialise the trace recorder.  Use of the trace recorder is optional.
+				See http://www.FreeRTOS.org/trace for more information. */
+				// vTraceEnable(TRC_START);
+				main_blinky();
+			}
+		}
+	}
 
 	/* Free the icS structure of injection campaigns allocated when reading the "input.csv" file */
     free(icS);
@@ -254,69 +323,6 @@ int main(int argc, char **argv)
 
 	// terminate
 	fclose (stfp);
-
-/*	printf("Select injection target:\n");
-
-	fgets(user, 64, stdin); //use file to define injection campaign
-	sscanf(user, "%d %d %d %d", &index, &nTests, &time, &delta);
-
-
-while(nTests>0){
-
-	int start=10;
-	int queue=nTests-start;
-
-	if(fork()){
-		queue--;
-		if(queue>0){
-			continue;
-		}else{
-			while(queue<10){
-				wait();
-				queue++;
-			}
-			nTests-=10;
-		}
-
-	}else{
-
-				while (selection)
-	{
-
-		if(selection->id==index){
-			injectonFunction(selection, time, delta);
-		}
-
-		for (target_t *child = selection->content; child; child = child->next)
-		{
-			if(child->id==index){
-				injectonFunction(child, time, delta);
-			}
-		}
-
-		selection = selection->next;
-	}
-	
-if(selection==NULL){
-	printf("failed to find target, please specify existing values in selection file");
-	exit(EXIT_FAILURE);
-}else{
-	exit(0);
-}
-
-	}
-}*/
-
-	/* This demo uses heap_5.c, so start by defining some heap regions.  heap_5
-	is only used for test and example reasons.  Heap_4 is more appropriate.  See
-	http://www.freertos.org/a00111.html for an explanation. */
-	prvInitialiseHeap();
-
-	/* Initialise the trace recorder.  Use of the trace recorder is optional.
-	See http://www.FreeRTOS.org/trace for more information. */
-	// vTraceEnable(TRC_START);
-
-	main_blinky();
 
 	return 0;
 }
@@ -593,4 +599,19 @@ static void printInjectionTarget(FILE *output, const target_t *target, const int
 	{
 		printInjectionTarget(output, target->next, depth);
 	}
+}
+
+target_t * getInjectionTarget(const target_t *target, char * toSearch){
+
+	target_t *tmp = target;
+	while(tmp->next != NULL){
+		for (target_t *child = tmp->content; child; child = child->next){
+			if(strcmp(tmp->name, toSearch) == 0){
+				return tmp;
+			}
+		}
+		tmp = tmp->next;
+	}
+
+	return NULL;
 }
