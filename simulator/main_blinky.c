@@ -134,7 +134,9 @@ static TimerHandle_t xTimer = NULL;
 /*** SEE THE COMMENTS AT THE TOP OF THIS FILE ***/
 void main_blinky( void )
 {
-const TickType_t xTimerPeriod = mainTIMER_SEND_FREQUENCY_MS;
+	const TickType_t xTimerPeriod = mainTIMER_SEND_FREQUENCY_MS;
+
+	vConfigureTimerForRunTimeStats();
 
 	/* Create the queue. */
 	xQueue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint32_t ) );
