@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <string.h>
 
+#include "../fork.h"
 #include "fork_internal.h"
 
 int runFreeRTOSInjection(freeRTOSInstance *instance, const const char *injectorPath, const char *target, const double time)
@@ -31,11 +32,11 @@ int runFreeRTOSInjection(freeRTOSInstance *instance, const const char *injectorP
 
     if (!result)
     {
-        return 1;
+        return FREE_RTOS_FORK_FAILURE;
     }
 
     instance->procHandle = processInformation.hProcess;
-    return 0;
+    return FREE_RTOS_FORK_SUCCESS;
 }
 
 int waitFreeRTOSInjection(const freeRTOSInstance *instance)

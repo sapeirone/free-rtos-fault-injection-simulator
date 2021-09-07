@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -52,6 +53,7 @@
 #include "asm.h"
 
 #include "injector.h"
+#include "fork.h"
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
@@ -111,6 +113,8 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 /* Notes if the trace is running or not. */
 static BaseType_t xTraceRunning = pdTRUE;
 
+static void printApplicationArguments (int argc, char **argv);
+
 static void listInjectionTargets (const char* outputFilename, const target_t *target);
 static void printInjectionTarget (FILE *output, const target_t *target, const int depth);
 
@@ -120,27 +124,43 @@ static void printInjectionTarget (FILE *output, const target_t *target, const in
 
 int main(int argc, char **argv)
 {
+	// print the application arguments for debugging purposes
+	printApplicationArguments(argc, argv);
+
 	/**
 	 * Read the available injection targets from the tasks and timer modules.
 	 * 
 	 * TODO: possibly add more injection targets.
 	 */
-	target_t *targets = NULL;
+	target_t *targets = read_tasks_targets(NULL);
+	targets = read_timer_targets(targets);
 
 	if (argc > 1 && strcmp(argv[1], "--list") == 0)
 	{
-		targets = read_tasks_targets(NULL);
-		targets = read_timer_targets(targets);
-
 		listInjectionTargets("targets.txt", targets);
 		
 		freeInjectionTargets(targets);
 		exit(0);
+	} else if (argc > 1 && strcmp(argv[1], "--run") == 0) {
+		printf("--run invoked\n");
+		exit(42);
 	}
 
 	/*
-	Option --force re-executes forcibly the golden execution
-	Option --list prints out all the possible targets for the injection campaign (fork + data collection)
+	// Example of a freeRTOS injector execution using runFreeRTOSInjection and waitFreeRTOSInjection
+	freeRTOSInstance instance;
+	target_t target = targets[0];
+	if (runFreeRTOSInjection(&instance, argv[0], target.address, 1000) == FREE_RTOS_FORK_SUCCESS) {
+		int exitCode = waitFreeRTOSInjection(&instance);
+		printf("The FreeRTOS instance completed with status code %d.\n", exitCode);
+	}
+
+	return 0;
+	*/ 
+
+	/*
+	Option --Force re-executes forcibly the golden execution
+	Option --List prints out all the possible targets for the injection campaign (fork + data collection)
 	Option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
 	*/
 
@@ -614,4 +634,12 @@ target_t * getInjectionTarget(const target_t *target, char * toSearch){
 	}
 
 	return NULL;
+}
+
+static void printApplicationArguments (int argc, char **argv) {
+	printf("Application arguments: ");
+	for (int i = 0; i < argc; i++) {
+		printf("%s ", argv[i]);
+	}
+	printf("\n");
 }
