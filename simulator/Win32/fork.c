@@ -7,9 +7,9 @@
 #include "../fork.h"
 #include "fork_internal.h"
 
-int runFreeRTOSInjection(freeRTOSInstance *instance, 
-                         const const char *injectorPath, 
-                         const void *target, 
+int runFreeRTOSInjection(freeRTOSInstance *instance,
+                         const const char *injectorPath,
+                         const void *target,
                          const unsigned long time,
                          const unsigned long offsetByte,
                          const unsigned long offsetBit)
@@ -32,7 +32,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         NULL,                  // Use parent's environment block
         NULL,                  // Use parent's starting directory
         &startupInfo,          // Pointer to STARTUPINFO structure
-        &processInformation);  // Pointer to PROCESS_INFORMATION structure
+        &procInfo              // Pointer to PROCESS_INFORMATION structure
     );
 
     if (!result)
@@ -40,13 +40,13 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         return FREE_RTOS_FORK_FAILURE;
     }
 
-    instance->procHandle = processInformation.hProcess;
+    instance->procHandle = procInfo.hProcess;
     return FREE_RTOS_FORK_SUCCESS;
 }
 
 int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 {
-    WaitForSingleObject(instance->procHandle);
+    WaitForSingleObject(instance->procHandle, INFINITE);
 
     int exitCode;
     GetExitCodeProcess(instance->procHandle, &exitCode);
