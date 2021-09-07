@@ -25,7 +25,9 @@
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
                          const void *target,
-                         const unsigned long time);
+                         const unsigned long time,
+                         const unsigned long offsetByte,
+                         const unsigned long offsetBit);
 
 /**
  * Wait for a FreeRTOS instance to complete

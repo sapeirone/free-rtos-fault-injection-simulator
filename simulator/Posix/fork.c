@@ -11,14 +11,15 @@
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
                          const void *target,
-                         const unsigned long time)
+                         const unsigned long time,
+                         const unsigned long offsetByte,
+                         const unsigned long offsetBit)
 {
     pid_t pid = fork();
 
     if (pid < 0)
     {
-        // TODO: need better error handling
-        return 1;
+        return FREE_RTOS_FORK_FAILURE;
     }
 
     // father process: simply return
@@ -28,21 +29,28 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         return FREE_RTOS_FORK_SUCCESS;
     }
 
-    char timeBuffer[64];
+    char timeBuffer[16];
     sprintf(timeBuffer, "%d", time);
 
-    char targetBuffer[64];
-    sprintf(targetBuffer, "0x%08x", target);
+    char targetBuffer[16];
+    sprintf(targetBuffer, "%d", target);
 
-    char *args[5] = {injectorPath, "--run", targetBuffer, timeBuffer, NULL};
-    // const char *args[2] = {"--run", NULL};
-    printf("child: executing %s\n", injectorPath);
-    printf("child: executing %s\n", targetBuffer);
-    printf("child: executing %s\n", timeBuffer);
-    execv("./build/sim", args); // execv should never return
+    char offsetByteBuffer[16];
+    sprintf(offsetByteBuffer, "%d", offsetByte);
+
+    char offsetBitBuffer[16];
+    sprintf(offsetBitBuffer, "%d", offsetBit);
+
+    char *args[6] = {
+        injectorPath, "--run",
+        targetBuffer, timeBuffer,
+        offsetByteBuffer, offsetBitBuffer,
+        NULL};
+    execv(injectorPath, args);
+
+    // execv should never return
     perror("child: execv failed");
 
-    // TODO: need better error handling
     return FREE_RTOS_FORK_FAILURE;
 }
 

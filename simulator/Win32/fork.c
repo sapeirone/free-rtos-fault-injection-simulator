@@ -7,7 +7,12 @@
 #include "../fork.h"
 #include "fork_internal.h"
 
-int runFreeRTOSInjection(freeRTOSInstance *instance, const const char *injectorPath, const char *target, const double time)
+int runFreeRTOSInjection(freeRTOSInstance *instance, 
+                         const const char *injectorPath, 
+                         const void *target, 
+                         const unsigned long time,
+                         const unsigned long offsetByte,
+                         const unsigned long offsetBit)
 {
     STARTUPINFO startupInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));
@@ -15,7 +20,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance, const const char *injectorP
     PROCESS_INFORMATION procInfo;
 
     char buffer[256];
-    sprintf(buffer, "%s --run %s %.2f", injectorPath, target, time);
+    sprintf(buffer, "%s --run %d %d %d %d", injectorPath, target, time, offsetBit);
 
     BOOL result = CreateProcessA(
         NULL,                  // No module name (use command line)
