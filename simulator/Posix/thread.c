@@ -8,10 +8,6 @@
 
 #include "../thread.h"
 
-typedef struct {
-    pthread_t thread_id;
-} thread_t;
-
 int launchThread(void * function,
                 void * address,
                 unsigned long injTime,
@@ -20,10 +16,10 @@ int launchThread(void * function,
                 thread_t * id){
     pthread_t thread_id;
     thData_t data = (thData_t) {address, injTime, offsetByte, offsetBit};
-    if(pthread_create(&thread_id, NULL, function, (void *)data) != 0){
+    if(pthread_create(&thread_id, NULL, function, (void *)&data) != 0){
         return INJECTOR_THREAD_FAILURE;
     }
-    id->thread_id = thread;
+    id->thread_id = thread_id;
     return INJECTOR_THREAD_SUCCESS;
 }
 

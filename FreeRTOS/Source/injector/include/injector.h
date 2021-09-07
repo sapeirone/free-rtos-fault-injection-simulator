@@ -76,4 +76,6 @@ void freeInjectionTargets(target_t *target);
         target = create_target(nameof(var), (void *)&(var), type, sizeof(var), NULL, target, 1); \
     };
 
+void injectorFunction(void * target, unsigned long timeInj, unsigned long offsetByte, unsigned long offsetBit);
+
 #endif

@@ -67,7 +67,6 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
 #define mainREGION_2_SIZE 29905
 #define mainREGION_3_SIZE 7807
 
-
 /*-----------------------------------------------------------*/
 
 extern void main_blinky(void);
@@ -116,25 +115,32 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 /* Notes if the trace is running or not. */
 static BaseType_t xTraceRunning = pdTRUE;
 
-typedef struct injectionResults {
+typedef struct injectionResults
+{
 	int nCrash, nHang, nSilent, nDelay, nNoError;
 } injectionResults_t;
 
-typedef struct injectionCampaign {
-	char * targetStructure, * distr;
+typedef struct injectionCampaign
+{
+	char *targetStructure, *distr;
 	int nInjections;
 	unsigned long medTimeRange, variance;
 	injectionResults_t res;
 } injectionCampaign_t;
 
-static void printApplicationArguments (int argc, char **argv);
+static void printApplicationArguments(int argc, char **argv);
 
-static void listInjectionTargets (const char* outputFilename, const target_t *target);
-static void printInjectionTarget (FILE *output, const target_t *target, const int depth);
+static void listInjectionTargets(const char *outputFilename, const target_t *target);
+static void printInjectionTarget(FILE *output, const target_t *target, const int depth);
 
-target_t * getInjectionTarget(const target_t *target, char * toSearch)
+target_t *getInjectionTarget(const target_t *target, char *toSearch);
+
+static void runInjection(void *address, unsigned long injTime, unsigned long offsetByte, unsigned long offsetBit);
 
 #define LENBUF 256
+
+#define CMD_LIST "--list"
+#define CMD_RUN "--run"
 
 /*-----------------------------------------------------------*/
 
@@ -151,56 +157,28 @@ int main(int argc, char **argv)
 	target_t *targets = read_tasks_targets(NULL);
 	targets = read_timer_targets(targets);
 
-	if (argc > 1 && strcmp(argv[1], "--list") == 0)
+	if (argc > 1 && strcmp(argv[1], CMD_LIST) == 0)
 	{
 		listInjectionTargets("targets.txt", targets);
-		
+
 		freeInjectionTargets(targets);
 		exit(0);
-	} else if (argc > 1 && strcmp(argv[1], "--run") == 0) {
-		if(argc != 6){
+	}
+	else if (argc > 1 && strcmp(argv[1], CMD_RUN) == 0)
+	{
+		if (argc != 6)
+		{
 			fprintf(stdout, "Invalid number of arguments for --run.\n");
 			return 7;
 		}
 
-		thread_t thID;
-		if(launchThread(injectorFunction, argv[2], argv[3], argv[4], argv[5], &thID) == INJECTOR_THREAD_FAILURE){
-			fprintf("Injectior thread launch failure.\n");
-			return 8;
-		}
-		detachThread(&thID);
+		// (void * function, void * address, unsigned long injTime, unsigned long offsetByte, unsigned long offsetBit, thread_t * id)
+		const void *address = (void *)atol(argv[2]);
+		const unsigned long injTime = atol(argv[3]);
+		const unsigned long offsetByte = atol(argv[4]);
+		const unsigned long offsetBit = atol(argv[5]);
 
-		/* Launch the FreeRTOS */
-		prvInitialiseHeap();
-		main_blinky();
-
-		/* Check trace and determine the outcome of the simulation */
-		int result = 0, flag = 0;
-		FILE *tefp = NULL;
-		char teBuffer[LENBUF];
-		unsigned long nTicksGoldenEx = 0, delay = 0, execTime = 0;
-		fgets(feBuffer, LENBUF - 1, tefp);
-		sscanf(teBuffer, "%lu", &nTicksGoldenEx);
-
-		for(int i = 0; i < TRACELEN; ++i){
-			char tmpBuffer[LENBUF];
-			sscanf(loggerTrace[i], "\t\t%s", tmpBuffer);
-			if(strncmp(tmpBuffer, "Idle", 4) != 0){
-				flag = 1;
-				break;
-			}
-		}
-
-		execTime = sscanf(loggerTrace[TRACELEN-1], "%lu", &execTime)
-		delay = abs(nTicksGoldenEx - execTime);
-
-		fclose(tefp);
-
-		/* TODO: Working trace analyzer */
-
-		/* Open the memory mapped file and increase the relative counter */
-
-		exit(42);
+		runInjection(address, injTime, offsetBit, offsetBit);
 	}
 
 	/*
@@ -213,7 +191,7 @@ int main(int argc, char **argv)
 	}
 
 	return 0;
-	*/ 
+	*/
 
 	/*
 	Option --Force re-executes forcibly the golden execution
@@ -228,17 +206,21 @@ int main(int argc, char **argv)
 	FILE *gefp = NULL;
 	gefp = fopen("golden.txt", "r");
 
-	if (gefp == NULL || (argc > 1 && strcmp(argv[1], "--force") == 0)){
+	if (gefp == NULL || (argc > 1 && strcmp(argv[1], "--force") == 0))
+	{
 		freeRTOSInstance instance;
-		int pid = runFreeRTOSInjection(&instance, NULL, NULL, 0, 0);
-		if(pid < 0){
+		int pid = runFreeRTOSInjection(&instance, argv[0], NULL, 0, 0, 0);
+		if (pid < 0)
+		{
 			fprintf(stdout, "Couldn't create golden execution process.\n");
 			return 7;
 		}
-		else if(pid > 0) { // Father process
+		else if (pid > 0)
+		{ // Father process
 			waitFreeRTOSInjection(&instance);
 		}
-		else { // Child process
+		else
+		{ // Child process
 			prvInitialiseHeap();
 			main_blinky();
 		}
@@ -257,18 +239,20 @@ int main(int argc, char **argv)
 	int icI = 0;
 	FILE *icfp = NULL;
 	char icBuffer[LENBUF];
-	injectionCampaign_t *icS = (injectionCampaign_t *) malloc(0);
+	injectionCampaign_t *icS = (injectionCampaign_t *)malloc(0);
 
 	icfp = fopen("input.csv", "r");
-	if(icfp == NULL){
+	if (icfp == NULL)
+	{
 		fprintf(stderr, "Couldn't open input file.\n");
 		return 1;
 	}
-	
-	while(fgets(icBuffer, LENBUF - 1, icfp) != NULL){
-		icS = (injectionCampaign_t *)realloc(icS, (icI+1) * sizeof(injectionCampaign_t));
-		sscanf(icBuffer, "%s;%d;%lf;%lf;%s;", icS[icI].targetStructure, &icS[icI].nInjections, 
-				&icS[icI].medTimeRange, &icS[icI].variance, icS[icI].distr);
+
+	while (fgets(icBuffer, LENBUF - 1, icfp) != NULL)
+	{
+		icS = (injectionCampaign_t *)realloc(icS, (icI + 1) * sizeof(injectionCampaign_t));
+		sscanf(icBuffer, "%s;%d;%lf;%lf;%s;", icS[icI].targetStructure, &icS[icI].nInjections,
+			   &icS[icI].medTimeRange, &icS[icI].variance, icS[icI].distr);
 		++icI;
 	}
 	fclose(icfp);
@@ -282,18 +266,20 @@ int main(int argc, char **argv)
 	unsigned long nTicksGoldenEx = 0, estTotTimeMin = 0, estTotTimeMax = 0;
 
 	tefp = fopen("golden.txt", "r");
-	if(tefp == NULL){
+	if (tefp == NULL)
+	{
 		fprintf(stderr, "Couldn't open golden execution results file.\n");
 		return 2;
 	}
-	fgets(feBuffer, LENBUF - 1, tefp);
+	fgets(teBuffer, LENBUF - 1, tefp);
 	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
 
 	fprintf(stdout, "Estimated execution times:\nTarget\tnExecs\ttMed\tvar\tdistr\testTimeMin\testTimeMax");
-	for(int i = 0; i < icI; ++i){
+	for (int i = 0; i < icI; ++i)
+	{
 		unsigned long estTimeMin = icS[i].nInjections * nTicksGoldenEx;
 		unsigned long estTimeMax = estTimeMin * 3; //300% of golden execution time, for each injection in the campaign
-		fprintf(stdout, "%s\t%d\t%lf\t%lf\t%s\t%lu\t%lu\n", icS[icI].targetStructure, icS[icI].nInjections, 
+		fprintf(stdout, "%s\t%d\t%lf\t%lf\t%s\t%lu\t%lu\n", icS[icI].targetStructure, icS[icI].nInjections,
 				icS[icI].medTimeRange, icS[icI].variance, icS[icI].distr, estTimeMin, estTimeMax);
 		estTotTimeMin += estTimeMin;
 		estTotTimeMax += estTimeMax;
@@ -313,46 +299,54 @@ int main(int argc, char **argv)
 	statistic in the memory mapped file for that campaign.
 	Completing injection campaigns advances a general completion bar.
 	*/
-	for(int i = 0; i < icI; ++i){ // For each injection campaign
-		for(int j = 0; j < icS[i].nInjections; ++j){ // For each injection in a campaign
-			target_t * injTarget = getInjectionTarget(targets, icS[i].targetStructure);
-			if(injTarget == NULL){
-				fprintf(stderr, "No target with name %s was found.\n", toSearch);
+	for (int i = 0; i < icI; ++i)
+	{ // For each injection campaign
+		for (int j = 0; j < icS[i].nInjections; ++j)
+		{ // For each injection in a campaign
+			target_t *injTarget = getInjectionTarget(targets, icS[i].targetStructure);
+			if (injTarget == NULL)
+			{
+				fprintf(stderr, "No target with name %s was found.\n", icS[i].targetStructure);
 				return 4;
 			}
 
-			srand(time(NULL));                              		//generate random seed
-			unsigned long offsetByte = rand() % injTarget->size;    //select byte to inject
-			unsigned long offsetBit = rand() % 8;                   //select bit to inject
+			srand(time(NULL));									 //generate random seed
+			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
+			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
 
-			switch(icS[i].distr[0]){ //Pick a distribution
-				case 'g':case'G': // Gaussian
-					// TODO
-					break;
-				case 'u':case 'U': // Uniform
-					injTime = icS[i].medTimeRange;          		            //if delta!=0 select time in interval
-					injTime += rand()%2 ? icS[i].variance : -icS[i].variance;  //choose if before or after selected time
-					break;
-				default:
-					fprintf(stderr, "No distribution with name %s is available.\n", icS[i].distr);
-					reaturn 5;
+			switch (icS[i].distr[0])
+			{ //Pick a distribution
+			case 'g':
+			case 'G': // Gaussian
+				// TODO
+				break;
+			case 'u':
+			case 'U':														// Uniform
+				injTime = icS[i].medTimeRange;								//if delta!=0 select time in interval
+				injTime += rand() % 2 ? icS[i].variance : -icS[i].variance; //choose if before or after selected time
+				break;
+			default:
+				fprintf(stderr, "No distribution with name %s is available.\n", icS[i].distr);
+				return 5;
 			}
 
 			freeRTOSInstance instance;
 			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->address, injTime, offsetByte, offsetBit);
-			if(pid < 0){
+			if (pid < 0)
+			{
 				fprintf(stdout, "Couldn't create child process.\n");
 				return 6;
 			}
-			else if(pid > 0) { // Father process
+			else if (pid > 0)
+			{ // Father process
 				waitFreeRTOSInjection(&instance);
 			}
 		}
 	}
 
 	/* Free the icS structure of injection campaigns allocated when reading the "input.csv" file */
-    free(icS);
+	free(icS);
 
 	/*
 	Once all the injection campaigns have been completed, the forefather opens the output file and
@@ -362,23 +356,25 @@ int main(int argc, char **argv)
 	long lSize;
 	injectionCampaign_t stBuffer;
 
-	stfp = fopen ("results.dat" , "rb" );
-	if (stfp == NULL){
+	stfp = fopen("results.dat", "rb");
+	if (stfp == NULL)
+	{
 		fprintf(stderr, "Couldn't open golden execution results file.\n");
 		return 3;
 	}
 
-	fprintf(stdout, "Execution statistics:\nTarget\tCrash\tHang\tSilent\tDelay\tNoError\n")
-	for(int i = 0; i < icI; ++i){
-		fread(stBuffer, sizeof(injectionCampaign_t), 1, stfp);
-		fprintf(stdout, "%s\t%.3lu\t%.3lu\t%.3lu\t%.3lu\t%.3lu\n", stBuffer[i].targetStructure,
-				stBuffer[i].res.nCrash / stBuffer[i].nInjections, stBuffer[i].res.nHang / stBuffer[i].nInjections,
-				stBuffer[i].res.nSilent / stBuffer[i].nInjections, stBuffer[i].res.nDelay / stBuffer[i].nInjections,
-				stBuffer[i].res.nNoError / stBuffer[i].nInjections);
+	fprintf(stdout, "Execution statistics:\nTarget\tCrash\tHang\tSilent\tDelay\tNoError\n");
+	for (int i = 0; i < icI; ++i)
+	{
+		fread(&stBuffer, sizeof(injectionCampaign_t), 1, stfp);
+		fprintf(stdout, "%s\t%.3lu\t%.3lu\t%.3lu\t%.3lu\t%.3lu\n", stBuffer.targetStructure,
+				stBuffer.res.nCrash / stBuffer.nInjections, stBuffer.res.nHang / stBuffer.nInjections,
+				stBuffer.res.nSilent / stBuffer.nInjections, stBuffer.res.nDelay / stBuffer.nInjections,
+				stBuffer.res.nNoError / stBuffer.nInjections);
 	}
 
 	// terminate
-	fclose (stfp);
+	fclose(stfp);
 
 	return 0;
 }
@@ -657,12 +653,16 @@ static void printInjectionTarget(FILE *output, const target_t *target, const int
 	}
 }
 
-target_t * getInjectionTarget(const target_t *target, char * toSearch){
+target_t *getInjectionTarget(const target_t *target, char *toSearch)
+{
 
 	target_t *tmp = target;
-	while(tmp->next != NULL){
-		for (target_t *child = tmp->content; child; child = child->next){
-			if(strcmp(tmp->name, toSearch) == 0){
+	while (tmp->next != NULL)
+	{
+		for (target_t *child = tmp->content; child; child = child->next)
+		{
+			if (strcmp(tmp->name, toSearch) == 0)
+			{
 				return tmp;
 			}
 		}
@@ -672,10 +672,57 @@ target_t * getInjectionTarget(const target_t *target, char * toSearch){
 	return NULL;
 }
 
-static void printApplicationArguments (int argc, char **argv) {
+static void printApplicationArguments(int argc, char **argv)
+{
 	printf("Application arguments: ");
-	for (int i = 0; i < argc; i++) {
+	for (int i = 0; i < argc; i++)
+	{
 		printf("%s ", argv[i]);
 	}
 	printf("\n");
+}
+
+static void runInjection(void *address, unsigned long injTime, unsigned long offsetByte, unsigned long offsetBit)
+{
+	thread_t thID;
+	if (launchThread(&injectorFunction, address, injTime, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
+	{
+		fprintf(stdout, "Injectior thread launch failure.\n");
+		return 8;
+	}
+	detachThread(&thID);
+
+	/* Launch the FreeRTOS */
+	prvInitialiseHeap();
+	main_blinky();
+
+	/* Check trace and determine the outcome of the simulation */
+	int result = 0, flag = 0;
+	FILE *tefp = NULL;
+	char teBuffer[LENBUF];
+	unsigned long nTicksGoldenEx = 0, delay = 0, execTime = 0;
+	fgets(teBuffer, LENBUF - 1, tefp);
+	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
+
+	for (int i = 0; i < TRACELEN; ++i)
+	{
+		char tmpBuffer[LENBUF];
+		sscanf(loggerTrace[i], "\t\t%s", tmpBuffer);
+		if (strncmp(tmpBuffer, "Idle", 4) != 0)
+		{
+			flag = 1;
+			break;
+		}
+	}
+
+	execTime = sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
+	delay = abs(nTicksGoldenEx - execTime);
+
+	fclose(tefp);
+
+	/* TODO: Working trace analyzer */
+
+	/* Open the memory mapped file and increase the relative counter */
+
+	exit(42);
 }

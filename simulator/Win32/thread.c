@@ -6,10 +6,7 @@
 
 #include "../thread.h"
 
-typedef struct
-{
-    HANDLE thread_id;
-} thread_t;
+
 
 int launchThread(void * function,
                 void * address,

@@ -68,11 +68,13 @@ if (UNIX)
     list(APPEND sources ./simulator/Posix/run-time-stats-utils.c)
     list(APPEND sources ./simulator/Posix/fork.c)
     list(APPEND sources ./simulator/Posix/sleep.c)
+    list(APPEND sources ./simulator/Posix/thread.c)
 elseif (WIN32)
     # win32-dependent source code
 	list(APPEND sources ./simulator/Win32/Run-time-stats-utils.c)
     list(APPEND sources ./simulator/Win32/fork.c)
     list(APPEND sources ./simulator/Win32/sleep.c)
+    list(APPEND sources ./simulator/Win32/thread.c)
 endif()
 
 add_executable(${PROJECT_NAME} ${sources})
