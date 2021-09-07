@@ -55,6 +55,8 @@
 #include "injector.h"
 #include "fork.h"
 #include "thread.h"
+#include "loggingUtils.h"
+extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
@@ -173,7 +175,28 @@ int main(int argc, char **argv)
 		main_blinky();
 
 		/* Check trace and determine the outcome of the simulation */
+		int result = 0, flag = 0;
+		FILE *tefp = NULL;
+		char teBuffer[LENBUF];
+		unsigned long nTicksGoldenEx = 0, delay = 0, execTime = 0;
+		fgets(feBuffer, LENBUF - 1, tefp);
+		sscanf(teBuffer, "%lu", &nTicksGoldenEx);
 
+		for(int i = 0; i < TRACELEN; ++i){
+			char tmpBuffer[LENBUF];
+			sscanf(loggerTrace[i], "\t\t%s", tmpBuffer);
+			if(strncmp(tmpBuffer, "Idle", 4) != 0){
+				flag = 1;
+				break;
+			}
+		}
+
+		execTime = sscanf(loggerTrace[TRACELEN-1], "%lu", &execTime)
+		delay = abs(nTicksGoldenEx - execTime);
+
+		fclose(tefp);
+
+		/* TODO: Working trace analyzer */
 
 		/* Open the memory mapped file and increase the relative counter */
 
