@@ -41,7 +41,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     char offsetBitBuffer[16];
     sprintf(offsetBitBuffer, "%d", offsetBit);
 
-    char *args[6] = {
+    char *args[7] = {
         injectorPath, "--run",
         targetBuffer, timeBuffer,
         offsetByteBuffer, offsetBitBuffer,
