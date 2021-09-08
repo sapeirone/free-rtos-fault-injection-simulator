@@ -294,7 +294,7 @@ int main(int argc, char **argv)
 	A for loop launches the iFork() of the forefather.
 	Each father (son of the forefather), launches a thread instance of the FreeRTOS + Injector.
 	The forefather waits for the father: if the return value of the wait is different from 0, the
-	forefatehr adds 1 to the "crash" entry for that campaign.
+	forefather adds 1 to the "crash" entry for that campaign.
 	Each father awaits the 300% golden execution time and then reads the trace, unless the FreeRTOS returned
 	by itself sooner. The father decides which termination has been performed and increases the relative
 	statistic in the memory mapped file for that campaign.
@@ -424,6 +424,30 @@ void vApplicationIdleHook(void)
 			}
 		}
 	*/
+	
+	/* First check the trace (could be skipped entirely, but avoids kernel calls) */
+	int Terminate = 1;
+	for(int i = 0; i < TRACELEN; ++i){
+		char tmpBuffer[LENBUF];
+		if(sscanf(loggerTrace[i], "%s %s %s", tmpBuffer, tmpBuffer, tmpBuffer) != 3){
+			Terminate = 0;
+			break;
+		}
+		//fprintf(stdout, "%s\n", tmpBuffer);
+		if(strncmp(tmpBuffer, "IDLE", 4) != 0){
+			Terminate = 0;
+			break;
+		}
+	}
+
+	/* If the only task remaining is the IDLE task, terminate the scheduler */
+	if(Terminate){
+		if(areReadyTasksListsEmpty()){
+			fprintf(stdout, "The only task remaining is the IDLE task\n");
+			vTaskEndScheduler();
+		}
+	}
+		
 }
 /*-----------------------------------------------------------*/
 
