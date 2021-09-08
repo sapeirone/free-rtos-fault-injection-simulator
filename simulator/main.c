@@ -442,6 +442,7 @@ void vApplicationIdleHook(void)
 
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
 	if(Terminate){
+		fprintf(stdout, "I tried to terminate\n");
 		if(areReadyTasksListsEmpty()){
 			fprintf(stdout, "The only task remaining is the IDLE task\n");
 			vTaskEndScheduler();

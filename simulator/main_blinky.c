@@ -165,6 +165,7 @@ void main_blinky( void )
 
 		/* Start the tasks and timer running. */
 		vTaskStartScheduler();
+		fprintf(stdout, "The child is executing past vTaskStartScheduler.\n");
 	}
 }
 /*-----------------------------------------------------------*/
@@ -194,6 +195,10 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TASK;
 		will not block - it shouldn't need to block as the queue should always
 		have at least one space at this point in the code. */
 		xQueueSend( xQueue, &ulValueToSend, 0U );
+
+		static int i = 0;
+		if(i++ > 10)
+			vTaskDelete( NULL );
 	}
 }
 /*-----------------------------------------------------------*/
@@ -241,6 +246,9 @@ uint32_t ulReceivedValue;
 		if( ulReceivedValue == mainVALUE_SENT_FROM_TASK )
 		{
 			printf( "Message received from task\r\n" );
+			static int i = 0;
+			if(i++ > 10)
+				vTaskDelete( NULL );
 		}
 		else if( ulReceivedValue == mainVALUE_SENT_FROM_TIMER )
 		{
