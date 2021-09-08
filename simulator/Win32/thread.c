@@ -8,9 +8,10 @@
 
 
 
-int launchThread(void * function,
+int launchThread(void* (*function) (void*),
                 const void * address,
                 const unsigned long injTime,
+                const unsigned long timeoutNs,
                 const unsigned long offsetByte,
                 const unsigned long offsetBit,
                 thread_t * id){

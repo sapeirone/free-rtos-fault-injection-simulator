@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#pragma warning(disable:4996) // _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -58,6 +58,8 @@
 #include "fork.h"
 #include "thread.h"
 #include "loggingUtils.h"
+#include "sleep.h"
+
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
@@ -137,7 +139,11 @@ static void printInjectionTarget(FILE *output, const target_t *target, const int
 
 target_t *getInjectionTarget(target_t *target, char *toSearch);
 
-static void runInjection(const void *address, const unsigned long injTime, const unsigned long offsetByte, const unsigned long offsetBit);
+static void runInjection(const void *address,
+						 const unsigned long injTime,
+						 const unsigned long timeoutNs,
+						 const unsigned long offsetByte,
+						 const unsigned long offsetBit);
 
 #define CMD_LIST "--list"
 #define CMD_RUN "--run"
@@ -178,7 +184,8 @@ int main(int argc, char **argv)
 		const unsigned long offsetByte = atol(argv[4]);
 		const unsigned long offsetBit = atol(argv[5]);
 
-		runInjection(address, injTime, offsetBit, offsetBit);
+		printf("Running injection with parameters: %lu, %lu, %lu, %lu\n", address, injTime, offsetByte, offsetBit);
+		runInjection(address, injTime, 3UL * 1000UL * 1000UL * 1000UL, offsetByte, offsetBit);
 	}
 
 	/*
@@ -226,7 +233,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(gefp != NULL)
+	if (gefp != NULL)
 		fclose(gefp);
 
 	/*
@@ -311,7 +318,7 @@ int main(int argc, char **argv)
 				return 4;
 			}
 
-			srand((unsigned int) time(NULL));									 //generate random seed
+			srand((unsigned int)time(NULL));					 //generate random seed
 			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
@@ -323,9 +330,9 @@ int main(int argc, char **argv)
 				// TODO
 				break;
 			case 'u':
-			case 'U':														// Uniform
-				injTime = icS[i].medTimeRange;								//if delta!=0 select time in interval
-				rand() % 2 ? (injTime += icS[i].variance) : (injTime = abs(injTime - (signed long) icS[i].variance)); //choose if before or after selected time
+			case 'U':																								 // Uniform
+				injTime = icS[i].medTimeRange;																		 //if delta!=0 select time in interval
+				rand() % 2 ? (injTime += icS[i].variance) : (injTime = abs(injTime - (signed long)icS[i].variance)); //choose if before or after selected time
 				break;
 			default:
 				fprintf(stderr, "No distribution with name %s is available.\n", icS[i].distr);
@@ -682,10 +689,14 @@ static void printApplicationArguments(int argc, char **argv)
 	printf("\n");
 }
 
-static void runInjection(const void *address, const unsigned long injTime, const unsigned long offsetByte, const unsigned long offsetBit)
+static void runInjection(const void *address,
+						 const unsigned long injTime,
+						 const unsigned long timeoutNs,
+						 const unsigned long offsetByte,
+						 const unsigned long offsetBit)
 {
 	thread_t thID;
-	if (address && launchThread(&injectorFunction, address, injTime, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
+	if (address && launchThread(&injectorFunction, address, injTime, timeoutNs, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
 	{
 		fprintf(stdout, "Injectior thread launch failure.\n");
 	}

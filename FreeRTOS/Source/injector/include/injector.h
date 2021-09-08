@@ -57,7 +57,7 @@ target_t *read_timer_targets(target_t *list);
 target_t *create_target(const char *name, void *address, target_type_t type,
                         unsigned int size, target_t *content, target_t *next, unsigned int nmemb);
 
-void pretty_print_target_type (unsigned int type, char *buffer);
+void pretty_print_target_type(unsigned int type, char *buffer);
 
 void freeInjectionTargets(target_t *target);
 
@@ -76,6 +76,6 @@ void freeInjectionTargets(target_t *target);
         target = create_target(nameof(var), (void *)&(var), type, sizeof(var), NULL, target, 1); \
     };
 
-void injectorFunction(void * target, unsigned long timeInj, unsigned long offsetByte, unsigned long offsetBit);
+void* injectorFunction(void *arg);
 
 #endif

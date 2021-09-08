@@ -1,9 +1,26 @@
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include "../../FreeRTOS/Source/injector/include/injector.h"
 #include "sleep.h"
+#include "thread.h"
 
-void injectorFunction(void * target, unsigned long timeInj, unsigned long offsetByte, unsigned long offsetBit)
+void* injectorFunction(void *arg)
 {
-    sleepNanoseconds(timeInj);
+    thData_t *data = (thData_t*) arg;
 
-    *((char*)target + offsetByte) ^= (1<<offsetBit);
+    printf("injectorFunction called with args: %lu, %lu, %lu, %lu, %lu\n", data->address,
+           data->injTime,
+           data->timeoutNs, data->offsetByte, data->offsetBit);
+
+    sleepNanoseconds(data->injTime);
+
+    printf("Performing the injection...\n");
+    *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
+    printf("Injection completed\n");
+
+    sleepNanoseconds(data->timeoutNs - data->injTime);
+
+    printf("Goodbye!");
+    vTaskEndScheduler();
 }
