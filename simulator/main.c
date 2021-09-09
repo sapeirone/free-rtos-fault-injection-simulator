@@ -139,7 +139,7 @@ static void printInjectionTarget(FILE *output, const target_t *target, const int
 
 target_t *getInjectionTarget(target_t *target, char *toSearch);
 
-static void runInjection(const void *address,
+static void runInjection(const target_t *target,
 						 const unsigned long injTime,
 						 const unsigned long timeoutNs,
 						 const unsigned long offsetByte,
@@ -178,14 +178,21 @@ int main(int argc, char **argv)
 			return 7;
 		}
 
-		// (void * function, void * address, unsigned long injTime, unsigned long offsetByte, unsigned long offsetBit, thread_t * id)
-		const void *address = (void *)atol(argv[2]);
+		const char *targetName = argv[2];
+		const target_t *injectionTarget = getInjectionTarget(targets, (char *)targetName);
+		if (!injectionTarget)
+		{
+			fprintf(stdout, "Invalid injection target\n");
+			return 8;
+		}
+
 		const unsigned long injTime = atol(argv[3]);
 		const unsigned long offsetByte = atol(argv[4]);
 		const unsigned long offsetBit = atol(argv[5]);
 
-		printf("Running injection with parameters: %lu, %lu, %lu, %lu\n", address, injTime, offsetByte, offsetBit);
-		runInjection(address, injTime, 3UL * 1000UL * 1000UL * 1000UL, offsetByte, offsetBit);
+		printf("Running injection with parameters: %lu, %lu, %lu, %lu\n", injectionTarget->name,
+			   injTime, offsetByte, offsetBit);
+		runInjection(injectionTarget, injTime, 3UL * 1000UL * 1000UL * 1000UL, offsetByte, offsetBit);
 	}
 
 	/*
@@ -666,6 +673,10 @@ target_t *getInjectionTarget(target_t *target, char *toSearch)
 	target_t *tmp = target;
 	while (tmp->next != NULL)
 	{
+		if (strcmp(tmp->name, toSearch) == 0) {
+			return tmp;
+		}
+
 		for (target_t *child = tmp->content; child; child = child->next)
 		{
 			if (strcmp(tmp->name, toSearch) == 0)
@@ -689,16 +700,19 @@ static void printApplicationArguments(int argc, char **argv)
 	printf("\n");
 }
 
-static void runInjection(const void *address,
+static void runInjection(const target_t *target,
 						 const unsigned long injTime,
 						 const unsigned long timeoutNs,
 						 const unsigned long offsetByte,
 						 const unsigned long offsetBit)
 {
 	thread_t thID;
-	if (address && launchThread(&injectorFunction, address, injTime, timeoutNs, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
+	if (target)
 	{
-		fprintf(stdout, "Injectior thread launch failure.\n");
+		if (launchThread(&injectorFunction, target->address, injTime, timeoutNs, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE) {
+			fprintf(stdout, "Injector thread launch failure.\n");
+			exit(9);
+		}
 	}
 	detachThread(&thID);
 
