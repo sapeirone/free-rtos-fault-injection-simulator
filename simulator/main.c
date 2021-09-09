@@ -60,6 +60,9 @@
 #include "loggingUtils.h"
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
+/* Global variables */
+int isGolden = 0;
+
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
 as this demo could easily create one large heap region instead of multiple
@@ -246,7 +249,7 @@ int main(int argc, char **argv)
 	icfp = fopen("input.csv", "r");
 	if (icfp == NULL)
 	{
-		fprintf(stderr, "Couldn't open input file.\n");
+		fprintf(stderr, "Couldn't open input file input.csv.\n");
 		return 1;
 	}
 
@@ -429,6 +432,17 @@ void vApplicationIdleHook(void)
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
 	if(isIdleHighlander()){
 		fprintf(stdout, "The only task remaining is the IDLE task.\n");
+		if(isGolden){
+			FILE *goldenfp = NULL;
+			unsigned long goldenTime = ulGetRunTimeCounterValue();
+			goldenfp = fopen("golden.txt", "w");
+			if(goldenfp == NULL){
+				fprintf(stdout, "Couldn't open golden.txt for writing.\n");
+				return -1;
+			}
+			fprintf(goldenfp, "%lu\n", goldenTime);
+			fclose(goldenfp);
+		}
 		vTaskEndScheduler();
 		fprintf(stdout, "Executing past vTaskEndScheduler.\n"); // Never executed
 	}
@@ -693,6 +707,9 @@ static void printApplicationArguments(int argc, char **argv)
 
 static void runInjection(const void *address, const unsigned long injTime, const unsigned long offsetByte, const unsigned long offsetBit)
 {
+	if(address == NULL)
+		isGolden = 1;
+
 	thread_t thID;
 	if (address && launchThread(&injectorFunction, address, injTime, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE)
 	{
