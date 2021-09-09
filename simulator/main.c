@@ -433,12 +433,12 @@ void vApplicationIdleHook(void)
 	if(isIdleHighlander()){
 		fprintf(stdout, "The only task remaining is the IDLE task.\n");
 		if(isGolden){
-			FILE *goldenfp = NULL;
 			unsigned long goldenTime = ulGetRunTimeCounterValue();
+			FILE *goldenfp = NULL;
 			goldenfp = fopen("golden.txt", "w");
 			if(goldenfp == NULL){
 				fprintf(stdout, "Couldn't open golden.txt for writing.\n");
-				return -1;
+				exit(EXIT_FAILURE);
 			}
 			fprintf(goldenfp, "%lu\n", goldenTime);
 			fclose(goldenfp);
