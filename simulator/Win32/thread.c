@@ -17,8 +17,16 @@ int launchThread(void* (*function) (void*),
                 thread_t * id){
     HANDLE thread = INVALID_HANDLE_VALUE;
     DWORD thID;
-    thData_t data = (thData_t) {address, injTime, offsetByte, offsetBit};
-    thread = CreateThread(NULL, 0, function, (VOID *) &data, 0, &thID);
+    
+    // TODO: at the moment there is NOT a corresponding free operation
+    thData_t *data = (thData_t *)malloc(sizeof(thData_t));
+    data->address = address;
+    data->injTime = injTime;
+    data->timeoutNs = timeoutNs;
+    data->offsetByte = offsetByte;
+    data->offsetBit = offsetBit;
+
+    thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) function, (VOID *) data, 0, &thID);
     if(thread == INVALID_HANDLE_VALUE){
         return INJECTOR_THREAD_FAILURE;
     }
