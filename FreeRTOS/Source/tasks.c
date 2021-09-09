@@ -4669,11 +4669,15 @@ static void prvResetNextTaskUnblockTime( void )
 
 /* Additional function to check if there are any more pending tasks */
     
-    int areReadyTasksListsEmpty()
+    int isIdleHighlander()
     {
         /* uxTopReadyPriority holds the current highest priority among the ready tasks */
         /* If the uxTopReadyPriority is 0 and there is a single task at uxTopReadyPriority == 0, it means only the IDLE task is ready */
-        if(uxTopReadyPriority == 0 && listCURRENT_LIST_LENGTH(&(pxReadyTasksLists[uxTopReadyPriority])) == ( UBaseType_t )1)
+        if(uxTopReadyPriority == 0 &&
+            listCURRENT_LIST_LENGTH(&(pxReadyTasksLists[uxTopReadyPriority])) == ( UBaseType_t )1 &&
+            listCURRENT_LIST_LENGTH(&(xDelayedTaskList1)) == ( UBaseType_t )0 &&
+            listCURRENT_LIST_LENGTH(&(xDelayedTaskList2)) == ( UBaseType_t )0 &&
+            listCURRENT_LIST_LENGTH(&(xPendingReadyList)) == ( UBaseType_t )0)
             return 1;
         
         return 0;

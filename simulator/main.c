@@ -218,6 +218,7 @@ int main(int argc, char **argv)
 		else if (pid > 0)
 		{ // Father process
 			waitFreeRTOSInjection(&instance);
+			fprintf(stdout, "The forefather passed the wait.\n");
 		}
 		else
 		{ // Child process
@@ -311,7 +312,7 @@ int main(int argc, char **argv)
 				return 4;
 			}
 
-			srand((unsigned int) time(NULL));									 //generate random seed
+			srand((unsigned int) time(NULL));					 //generate random seed
 			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
@@ -425,28 +426,11 @@ void vApplicationIdleHook(void)
 		}
 	*/
 	
-	/* First check the trace (could be skipped entirely, but avoids kernel calls) */
-	int Terminate = 1;
-	for(int i = 0; i < TRACELEN; ++i){
-		char tmpBuffer[LENBUF];
-		if(sscanf(loggerTrace[i], "%s %s %s", tmpBuffer, tmpBuffer, tmpBuffer) != 3){
-			Terminate = 0;
-			break;
-		}
-		//fprintf(stdout, "%s\n", tmpBuffer);
-		if(strncmp(tmpBuffer, "IDLE", 4) != 0){
-			Terminate = 0;
-			break;
-		}
-	}
-
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
-	if(Terminate){
-		fprintf(stdout, "I tried to terminate\n");
-		if(areReadyTasksListsEmpty()){
-			fprintf(stdout, "The only task remaining is the IDLE task\n");
-			vTaskEndScheduler();
-		}
+	if(isIdleHighlander()){
+		fprintf(stdout, "The only task remaining is the IDLE task.\n");
+		vTaskEndScheduler();
+		fprintf(stdout, "Executing past vTaskEndScheduler.\n"); // Never executed
 	}
 		
 }
