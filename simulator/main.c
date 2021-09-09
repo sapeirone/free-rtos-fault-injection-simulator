@@ -62,6 +62,9 @@
 
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
+/* Global variables */
+int isGolden = 0;
+
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
 as this demo could easily create one large heap region instead of multiple
@@ -179,20 +182,26 @@ int main(int argc, char **argv)
 		}
 
 		const char *targetName = argv[2];
-		const target_t *injectionTarget = getInjectionTarget(targets, (char *)targetName);
-		if (!injectionTarget)
-		{
-			fprintf(stdout, "Invalid injection target\n");
-			return 8;
+		if (strncmp(targetName, "0", 1) == 0) {
+			printf("Running a golden execution...\n");
+			runInjection(NULL, 0UL, 0UL, 0UL, 0UL);
+		} else {
+			target_t *injectionTarget = getInjectionTarget(targets, (char *)targetName);
+
+			if (!injectionTarget)
+			{
+				fprintf(stdout, "Invalid injection target\n");
+				return 8;
+			}
+
+			const unsigned long injTime = atol(argv[3]);
+			const unsigned long offsetByte = atol(argv[4]);
+			const unsigned long offsetBit = atol(argv[5]);
+
+			printf("Running injection with parameters: %lu, %lu, %lu, %lu\n", injectionTarget->name,
+				injTime, offsetByte, offsetBit);
+			runInjection(injectionTarget, injTime, 3UL * 1000UL * 1000UL * 1000UL, offsetByte, offsetBit);
 		}
-
-		const unsigned long injTime = atol(argv[3]);
-		const unsigned long offsetByte = atol(argv[4]);
-		const unsigned long offsetBit = atol(argv[5]);
-
-		printf("Running injection with parameters: %lu, %lu, %lu, %lu\n", injectionTarget->name,
-			   injTime, offsetByte, offsetBit);
-		runInjection(injectionTarget, injTime, 3UL * 1000UL * 1000UL * 1000UL, offsetByte, offsetBit);
 	}
 
 	/*
@@ -232,6 +241,7 @@ int main(int argc, char **argv)
 		else if (pid > 0)
 		{ // Father process
 			waitFreeRTOSInjection(&instance);
+			fprintf(stdout, "The forefather passed the wait.\n");
 		}
 		else
 		{ // Child process
@@ -259,7 +269,7 @@ int main(int argc, char **argv)
 	icfp = fopen("input.csv", "r");
 	if (icfp == NULL)
 	{
-		fprintf(stderr, "Couldn't open input file.\n");
+		fprintf(stderr, "Couldn't open input file input.csv.\n");
 		return 1;
 	}
 
@@ -308,7 +318,7 @@ int main(int argc, char **argv)
 	A for loop launches the iFork() of the forefather.
 	Each father (son of the forefather), launches a thread instance of the FreeRTOS + Injector.
 	The forefather waits for the father: if the return value of the wait is different from 0, the
-	forefatehr adds 1 to the "crash" entry for that campaign.
+	forefather adds 1 to the "crash" entry for that campaign.
 	Each father awaits the 300% golden execution time and then reads the trace, unless the FreeRTOS returned
 	by itself sooner. The father decides which termination has been performed and increases the relative
 	statistic in the memory mapped file for that campaign.
@@ -438,6 +448,25 @@ void vApplicationIdleHook(void)
 			}
 		}
 	*/
+	
+	/* If the only task remaining is the IDLE task, terminate the scheduler */
+	if(isIdleHighlander()){
+		fprintf(stdout, "The only task remaining is the IDLE task.\n");
+		if(isGolden){
+			FILE *goldenfp = NULL;
+			unsigned long goldenTime = ulGetRunTimeCounterValue();
+			goldenfp = fopen("golden.txt", "w");
+			if(goldenfp == NULL){
+				fprintf(stdout, "Couldn't open golden.txt for writing.\n");
+				return -1;
+			}
+			fprintf(goldenfp, "%lu\n", goldenTime);
+			fclose(goldenfp);
+		}
+		vTaskEndScheduler();
+		fprintf(stdout, "Executing past vTaskEndScheduler.\n"); // Never executed
+	}
+		
 }
 /*-----------------------------------------------------------*/
 
@@ -706,6 +735,11 @@ static void runInjection(const target_t *target,
 						 const unsigned long offsetByte,
 						 const unsigned long offsetBit)
 {
+	if(target == NULL) {
+		isGolden = 1;
+		printf("is golden\n");	
+	}
+
 	thread_t thID;
 	if (target)
 	{

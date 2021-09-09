@@ -165,6 +165,7 @@ void main_blinky( void )
 
 		/* Start the tasks and timer running. */
 		vTaskStartScheduler();
+		fprintf(stdout, "Executing past vTaskStartScheduler.\n");
 	}
 }
 /*-----------------------------------------------------------*/
@@ -183,17 +184,21 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TASK;
 
 	for( ;; )
 	{
+		/* Send to the queue - causing the queue receive task to unblock and
+		write to the console.  0 is used as the block time so the send operation
+		will not block - it shouldn't need to block as the queue should always
+		have at least one space at this point in the code. */
+		xQueueSend( xQueue, &ulValueToSend, 0U );
+
 		/* Place this task in the blocked state until it is time to run again.
 		The block time is specified in ticks, pdMS_TO_TICKS() was used to
 		convert a time specified in milliseconds into a time specified in ticks.
 		While in the Blocked state this task will not consume any CPU time. */
 		vTaskDelayUntil( &xNextWakeTime, xBlockTime );
 
-		/* Send to the queue - causing the queue receive task to unblock and
-		write to the console.  0 is used as the block time so the send operation
-		will not block - it shouldn't need to block as the queue should always
-		have at least one space at this point in the code. */
-		xQueueSend( xQueue, &ulValueToSend, 0U );
+		static int i = 0;
+		if(i++ > 10)
+			vTaskDelete( NULL );
 	}
 }
 /*-----------------------------------------------------------*/
@@ -241,6 +246,10 @@ uint32_t ulReceivedValue;
 		if( ulReceivedValue == mainVALUE_SENT_FROM_TASK )
 		{
 			printf( "Message received from task\r\n" );
+			
+			static int j = 0;
+			if(j++ > 10)
+				vTaskDelete( NULL );
 		}
 		else if( ulReceivedValue == mainVALUE_SENT_FROM_TIMER )
 		{

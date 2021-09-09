@@ -111,6 +111,7 @@ functions anyway. */
 #define INCLUDE_xSemaphoreGetMutexHolder		1
 #define INCLUDE_xTimerPendFunctionCall			1
 #define INCLUDE_xTaskAbortDelay					1
+#define INCLUDE_vTaskDelete  					1
 
 /* The Win32 target is capable of running all the tests tasks at the same
  * time. */

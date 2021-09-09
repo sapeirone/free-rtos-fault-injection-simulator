@@ -54,10 +54,11 @@ void writeToLoggerTrace(signed char * strToWrite){
         strcpy(loggerTrace[index], strToWrite);
     }
     // Debug
+    /*
     printf("#####################################################################\n");
     for(int i = 0; i<TRACELEN; ++i){
         printf("%d\t", i);
         printf(loggerTrace[i]);
         printf("\n");
-    }   
+    }   */
 }

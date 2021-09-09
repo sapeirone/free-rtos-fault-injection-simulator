@@ -29,6 +29,7 @@
 /* Standard includes. */
 #include <stdlib.h>
 #include <string.h>
+#pragma warning(disable:4996) // _CRT_SECURE_NO_WARNINGS
 
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
  * all the API functions to use the MPU wrappers.  That should only be done when
@@ -4666,6 +4667,21 @@ static void prvResetNextTaskUnblockTime( void )
         sprintf( pcWriteBuffer, "%s", pxCurrentTCB->pcTaskName);
     }
 
+/* Additional function to check if there are any more pending tasks */
+    
+    int isIdleHighlander()
+    {
+        /* uxTopReadyPriority holds the current highest priority among the ready tasks */
+        /* If the uxTopReadyPriority is 0 and there is a single task at uxTopReadyPriority == 0, it means only the IDLE task is ready */
+        if(uxTopReadyPriority == 0 &&
+            listCURRENT_LIST_LENGTH(&(pxReadyTasksLists[uxTopReadyPriority])) == ( UBaseType_t )1 &&
+            listCURRENT_LIST_LENGTH(&(xDelayedTaskList1)) == ( UBaseType_t )0 &&
+            listCURRENT_LIST_LENGTH(&(xDelayedTaskList2)) == ( UBaseType_t )0 &&
+            listCURRENT_LIST_LENGTH(&(xPendingReadyList)) == ( UBaseType_t )0)
+            return 1;
+        
+        return 0;
+    }
 
 
 #endif /* ( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) ) */
