@@ -720,6 +720,8 @@ static void runInjection(const target_t *target,
 	prvInitialiseHeap();
 	main_blinky();
 
+	printf("main_blinky returned\n");
+
 	/* Check trace and determine the outcome of the simulation */
 	int result = 0, flag = 0;
 	FILE *tefp = NULL;

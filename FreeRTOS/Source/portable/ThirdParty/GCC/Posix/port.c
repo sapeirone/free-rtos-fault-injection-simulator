@@ -173,6 +173,9 @@ Thread_t *pxFirstThread = prvGetThreadFromTask( xTaskGetCurrentTaskHandle() );
 }
 /*-----------------------------------------------------------*/
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
+
 /*
  * See header file for description.
  */
@@ -194,14 +197,22 @@ sigset_t xSignals;
     sigemptyset( &xSignals );
     sigaddset( &xSignals, SIG_RESUME );
 
-    while ( !xSchedulerEnd )
+    /*while ( !xSchedulerEnd )
     {
         sigwait( &xSignals, &iSignal );
+    }*/
+
+    pthread_mutex_lock(&mutex);
+    while ( !xSchedulerEnd )
+    {
+        //sigwait( &xSignals, &iSignal );
+        pthread_cond_wait(&cv, &mutex);
     }
 
     /* Cancel the Idle task and free its resources */
 #if ( INCLUDE_xTaskGetIdleTaskHandle == 1 )
-    vPortCancelThread( xTaskGetIdleTaskHandle() );
+    // vTaskSuspend(xTaskGetIdleTaskHandle());
+    // vPortCancelThread( xTaskGetIdleTaskHandle() );
 #endif
 
 #if ( configUSE_TIMERS == 1 )
@@ -237,8 +248,11 @@ Thread_t *xCurrentThread;
     sigaction( SIGALRM, &sigtick, NULL );
 
     /* Signal the scheduler to exit its loop. */
+    pthread_mutex_lock(&mutex);
     xSchedulerEnd = pdTRUE;
-    (void)pthread_kill( hMainThread, SIG_RESUME );
+    pthread_cond_broadcast(&cv);
+    pthread_mutex_unlock(&mutex);
+    //(void)pthread_kill( hMainThread, SIG_RESUME );
 
     xCurrentThread = prvGetThreadFromTask( xTaskGetCurrentTaskHandle() );
     prvSuspendSelf(xCurrentThread);
