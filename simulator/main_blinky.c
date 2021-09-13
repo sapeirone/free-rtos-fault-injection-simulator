@@ -91,6 +91,9 @@
 #include "timers.h"
 #include "semphr.h"
 
+/* Additional includes */
+#include "benchmark/benchmark.h"
+
 /* Priorities at which the tasks are created. */
 #define mainQUEUE_RECEIVE_TASK_PRIORITY		( tskIDLE_PRIORITY + 2 )
 #define	mainQUEUE_SEND_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
@@ -115,6 +118,11 @@ queue send software timer respectively. */
  */
 static void prvQueueReceiveTask( void *pvParameters );
 static void prvQueueSendTask( void *pvParameters );
+
+/*
+ * The additional benchmark tasks.
+ */
+static void prvQSortTask(void *pvParameters);
 
 /*
  * The callback function executed when the software timer expires.
@@ -145,29 +153,48 @@ void main_blinky( void )
 	{
 		/* Start the two tasks as described in the comments at the top of this
 		file. */
-		xTaskCreate( prvQueueReceiveTask,			/* The function that implements the task. */
-					"Rx", 							/* The text name assigned to the task - for debug only as it is not used by the kernel. */
-					configMINIMAL_STACK_SIZE, 		/* The size of the stack to allocate to the task. */
-					NULL, 							/* The parameter passed to the task - not used in this simple case. */
-					mainQUEUE_RECEIVE_TASK_PRIORITY,/* The priority assigned to the task. */
-					NULL );							/* The task handle is not required, so NULL is passed. */
-
+		xTaskCreate( prvQueueReceiveTask, "Rx", configMINIMAL_STACK_SIZE, NULL, mainQUEUE_RECEIVE_TASK_PRIORITY, NULL );							
 		xTaskCreate( prvQueueSendTask, "TX", configMINIMAL_STACK_SIZE, NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL );
 
 		/* Create the software timer, but don't start it yet. */
-		xTimer = xTimerCreate( "Timer",				/* The text name assigned to the software timer - for debug only as it is not used by the kernel. */
-								xTimerPeriod,		/* The period of the software timer in ticks. */
-								pdFALSE,			/* xAutoReload is set to pdFALSE, so this is a one-shot timer. */
-								NULL,				/* The timer's ID is not used. */
-								prvQueueSendTimerCallback );/* The function executed when the timer expires. */
+		xTimer = xTimerCreate( "Timer",				// The text name assigned to the software timer - for debug only as it is not used by the kernel.
+								xTimerPeriod,		// The period of the software timer in ticks.
+								pdFALSE,			// xAutoReload is set to pdFALSE, so this is a one-shot timer.
+								NULL,				// The timer's ID is not used.
+								prvQueueSendTimerCallback ); // The function executed when the timer expires.
+		xTimerStart( xTimer, 0 ); // The scheduler has not started so use a block time of 0.
 
-		xTimerStart( xTimer, 0 ); /* The scheduler has not started so use a block time of 0. */
+		/* Custom benchmarking */
+		xTaskCreate( prvQSortTask,				// The function that implements the task.
+					"qSort", 					// The text name assigned to the task - for debug only as it is not used by the kernel.
+					configMINIMAL_STACK_SIZE, 	// The size of the stack to allocate to the task.
+					NULL, 						// The parameter passed to the task - not used in this simple case.
+					tskIDLE_PRIORITY + 2,			// The priority assigned to the task.
+					NULL );						// The task handle is not required, so NULL is passed.
 
 		/* Start the tasks and timer running. */
 		vTaskStartScheduler();
 		fprintf(stdout, "Executing past vTaskStartScheduler.\n");
 	}
 }
+
+/* Benchmark tasks */
+static void prvQSortTask(void *pvParameters)
+{
+	( void ) pvParameters;
+	TickType_t xNextWakeTime;
+	const TickType_t xBlockTime = mainTASK_SEND_FREQUENCY_MS;
+	xNextWakeTime = xTaskGetTickCount();
+
+	for( ;; )
+	{
+		qsort_bench();	
+		vTaskDelayUntil( &xNextWakeTime, xBlockTime );
+		vTaskDelete( NULL );
+	}
+}
+
+
 /*-----------------------------------------------------------*/
 
 static void prvQueueSendTask( void *pvParameters )
