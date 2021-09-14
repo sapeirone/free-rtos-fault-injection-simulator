@@ -70,7 +70,7 @@
 #define SIG_RESUME SIGUSR1
 #define SIG_INTERRUPT SIGUSR2
 
-static uint32_t (*interruptHandler)( void ) = NULL
+static uint32_t (*interruptHandler)( void ) = NULL;
 
 typedef struct THREAD
 {
