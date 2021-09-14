@@ -190,6 +190,8 @@ sigset_t xSignals;
        Interrupts are disabled here already. */
     prvSetupTimerInterrupt();
 
+    prvSetupGenericInterrupts();
+
     /* Start the first task. */
     vPortStartFirstTask();
 
@@ -378,6 +380,10 @@ int iRet;
 
     prvStartTimeNs = prvGetTimeNs();
 }
+
+void prvSetupGenericInterrupts() {
+
+}
 /*-----------------------------------------------------------*/
 
 static void vPortSystemTickHandler( int sig )
@@ -518,6 +524,10 @@ static void prvResumeThread( Thread_t *xThreadId )
 }
 /*-----------------------------------------------------------*/
 
+static void vPortInterruptsHandler () {
+    printf("Hola interrupts\n");
+}
+
 static void prvSetupSignalsAndSchedulerPolicy( void )
 {
 struct sigaction sigresume, sigtick;
@@ -564,6 +574,20 @@ int iRet;
     {
         prvFatalError( "sigaction", errno );
     }
+
+    struct sigaction siginterrupt;
+    siginterrupt.sa_flags = 0;
+    siginterrupt.sa_handler = vPortInterruptsHandler;
+    sigaddset(&siginterrupt.sa_mask, SIGUSR1);
+    iRet = sigaction( SIGUSR1, &siginterrupt, NULL );
+    if ( iRet )
+    {
+        prvFatalError( "sigaction", errno );
+    }
+}
+
+void vPortGenerateSimulatedInterrupt( uint32_t ulInterruptNumber ) {
+    pthread_kill( hMainThread, SIGUSR1);
 }
 /*-----------------------------------------------------------*/
 
