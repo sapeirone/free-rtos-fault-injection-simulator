@@ -474,6 +474,7 @@ void vApplicationIdleHook(void)
 	{
 		if (isGolden)
 			writeGoldenFile();
+		vPortGenerateSimulatedInterrupt( 5 );
 		vTaskEndScheduler();
 		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
 	}

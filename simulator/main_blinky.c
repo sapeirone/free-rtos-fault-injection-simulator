@@ -128,6 +128,11 @@ static void prvQueueSendTask( void *pvParameters );
 static void prvQSortTask(void *pvParameters);
 
 /*
+ * Simulated interrupt for ISR hang check.
+ */
+static unsigned long prvInterruptHandler( void );
+
+/*
  * The callback function executed when the software timer expires.
  */
 static void prvQueueSendTimerCallback( TimerHandle_t xTimerHandle );
@@ -172,8 +177,10 @@ void main_blinky( void )
 					"qSort", 					// The text name assigned to the task - for debug only as it is not used by the kernel.
 					configMINIMAL_STACK_SIZE, 	// The size of the stack to allocate to the task.
 					NULL, 						// The parameter passed to the task - not used in this simple case.
-					tskIDLE_PRIORITY + 2,			// The priority assigned to the task.
+					tskIDLE_PRIORITY + 2,		// The priority assigned to the task.
 					NULL );						// The task handle is not required, so NULL is passed.
+
+		vPortSetInterruptHandler( 5, prvInterruptHandler );
 
 		/* Start the tasks and timer running. */
 		vTaskStartScheduler();
@@ -181,7 +188,7 @@ void main_blinky( void )
 	}
 }
 
-/* Benchmark tasks */
+/* -------------------- Benchmark tasks -------------------- */
 static void prvQSortTask(void *pvParameters)
 {
 	( void ) pvParameters;
@@ -191,12 +198,23 @@ static void prvQSortTask(void *pvParameters)
 
 	for( ;; )
 	{
+		static int i = 0;
 		vTaskDelayUntil( &xNextWakeTime, xBlockTime );
 		qsort_bench();	
 		vTaskDelete( NULL );
 	}
 }
 
+static unsigned long prvInterruptHandler( void )
+{
+	uint32_t ulReceivedValue;
+	BaseType_t * const HigherPrioTaskWoken = pdFALSE;
+	fprintf(stdout, "Handler has been called.\n");
+	xQueueReceiveFromISR( xQueue, &ulReceivedValue, &HigherPrioTaskWoken );
+	printTrace();
+
+    return pdTRUE;
+}
 
 /*-----------------------------------------------------------*/
 

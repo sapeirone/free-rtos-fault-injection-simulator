@@ -28,6 +28,7 @@ void *injectorFunction(void *arg)
     sleepNanoseconds(data->timeoutNs - currentTime);
 
     DEBUG_PRINT("The execution timeout expired\n");
+    vPortGenerateSimulatedInterrupt( 5 );
     vTaskEndScheduler();
 
     // vTaskEndScheduler should NOT return

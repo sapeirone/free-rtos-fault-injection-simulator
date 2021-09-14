@@ -7,5 +7,6 @@ extern signed char loggerTrace[TRACELEN][LENBUF];
 
 void loggingFunction(int logCause);
 void writeToLoggerTrace(signed char * strToWrite);
+void printTrace();
 
 #endif

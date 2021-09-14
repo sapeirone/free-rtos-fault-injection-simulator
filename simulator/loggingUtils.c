@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include "loggingUtils.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -63,4 +62,13 @@ void writeToLoggerTrace(signed char * strToWrite){
         printf(loggerTrace[i]);
         printf("\n");
     }   */
+}
+
+void printTrace(){
+    printf("#####################################################################\n");
+    for(int i = 0; i<TRACELEN; ++i){
+        printf("%d\t", i);
+        printf(loggerTrace[i]);
+        printf("\n");
+    }
 }
