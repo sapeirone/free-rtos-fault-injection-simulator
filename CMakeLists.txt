@@ -64,6 +64,7 @@ file(GLOB sources ${SIMULATOR_DIR}/main.c)
 list(APPEND sources ${SIMULATOR_DIR}/main_blinky.c)
 list(APPEND sources ${SIMULATOR_DIR}/loggingUtils.c)
 list(APPEND sources ${SIMULATOR_DIR}/injection/injection.c)
+list(APPEND sources ${SIMULATOR_DIR}/benchmark/benchmark.c)
 
 if (UNIX) 
     # posix-dependent source code
