@@ -496,14 +496,10 @@ void vApplicationIdleHook(void)
 	*/
 
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
-	/*if (isIdleHighlander())
+	if (isIdleHighlander())
 	{
 		vTaskEndScheduler();
 		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
-	}*/
-
-	if (mustEnd) {
-		vTaskEndScheduler();
 	}
 }
 /*-----------------------------------------------------------*/

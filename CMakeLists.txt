@@ -14,28 +14,30 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/build)
 set(FREERTOS_DIR "./FreeRTOS/")
 set(KERNEL_DIR "./FreeRTOS/Source")
 set(FREERTOS_PLUS_DIR "./FreeRTOS-Plus")
+set(SIMULATOR_DIR "./simulator")
 
 include_directories(${KERNEL_DIR}/include)
 include_directories(${FREERTOS_DIR}/Demo/Common/include)
 
-include_directories(./simulator/)
+include_directories(${SIMULATOR_DIR})
+include_directories(${SIMULATOR_DIR}/injection/include)
 
 # injector specific import
 include_directories(${KERNEL_DIR}/injector/include)
 
 # unix-specific includes
 if (UNIX)
-    include_directories(./simulator/Posix)
+    include_directories(${SIMULATOR_DIR}/Posix)
     include_directories(${KERNEL_DIR}/portable/ThirdParty/GCC/Posix)
     include_directories(${KERNEL_DIR}/portable/ThirdParty/GCC/Posix/utils)
 elseif (WIN32)
-    include_directories(./simulator/Win32)
+    include_directories(${SIMULATOR_DIR}/Win32)
     include_directories(${KERNEL_DIR}/portable/MSVC-MingW/)
 endif()
 
 file(GLOB FreeRTOS_src ${KERNEL_DIR}/*.c)
 list(APPEND FreeRTOS_src ${KERNEL_DIR}/portable/MemMang/heap_5.c)
-list(APPEND FreeRTOS_src ${KERNEL_DIR}/injector/common.c)
+list(APPEND FreeRTOS_src ${SIMULATOR_DIR}/injection/common.c)
 
 # unix-specific kernel code
 if (UNIX) 
@@ -58,23 +60,23 @@ elseif (WIN32)
 endif()
 
 # platform-independent source code
-file(GLOB sources ./simulator/main.c)
-list(APPEND sources ./simulator/main_blinky.c)
-list(APPEND sources ./simulator/loggingUtils.c)
-list(APPEND sources ./simulator/injection/injection.c)
+file(GLOB sources ${SIMULATOR_DIR}/main.c)
+list(APPEND sources ${SIMULATOR_DIR}/main_blinky.c)
+list(APPEND sources ${SIMULATOR_DIR}/loggingUtils.c)
+list(APPEND sources ${SIMULATOR_DIR}/injection/injection.c)
 
 if (UNIX) 
     # posix-dependent source code
-    list(APPEND sources ./simulator/Posix/run-time-stats-utils.c)
-    list(APPEND sources ./simulator/Posix/fork.c)
-    list(APPEND sources ./simulator/Posix/sleep.c)
-    list(APPEND sources ./simulator/Posix/thread.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Posix/run-time-stats-utils.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Posix/fork.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Posix/sleep.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Posix/thread.c)
 elseif (WIN32)
     # win32-dependent source code
-	list(APPEND sources ./simulator/Win32/Run-time-stats-utils.c)
-    list(APPEND sources ./simulator/Win32/fork.c)
-    list(APPEND sources ./simulator/Win32/sleep.c)
-    list(APPEND sources ./simulator/Win32/thread.c)
+	list(APPEND sources ${SIMULATOR_DIR}/Win32/Run-time-stats-utils.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Win32/fork.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Win32/sleep.c)
+    list(APPEND sources ${SIMULATOR_DIR}/Win32/thread.c)
 endif()
 
 add_executable(${PROJECT_NAME} ${sources})

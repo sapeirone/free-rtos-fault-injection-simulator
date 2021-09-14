@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "../../FreeRTOS/Source/injector/include/injector.h"
+#include "injector.h"
 #include "sleep.h"
 #include "thread.h"
 
@@ -26,6 +26,5 @@ void* injectorFunction(void *arg)
     sleepNanoseconds(data->timeoutNs - data->injTime);
 
     printf("Goodbye!\n");
-    // vTaskEndScheduler();
-    mustEnd = 1;
+    vTaskEndScheduler();
 }
