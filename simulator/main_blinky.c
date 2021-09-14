@@ -196,9 +196,9 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TASK;
 		While in the Blocked state this task will not consume any CPU time. */
 		vTaskDelayUntil( &xNextWakeTime, xBlockTime );
 
-		static int i = 0;
-		if(i++ > 10)
-			vTaskDelete( NULL );
+		// static int i = 0;
+		// if(i++ > 10)
+		// 	vTaskDelete( NULL );
 	}
 }
 /*-----------------------------------------------------------*/
@@ -247,9 +247,9 @@ uint32_t ulReceivedValue;
 		{
 			printf( "Message received from task\r\n" );
 			
-			static int j = 0;
-			if(j++ > 10)
-				vTaskDelete( NULL );
+			// static int j = 0;
+			// if(j++ > 1000)
+			// 	vTaskDelete( NULL );
 		}
 		else if( ulReceivedValue == mainVALUE_SENT_FROM_TIMER )
 		{

@@ -1,5 +1,4 @@
 /*
- * FreeRTOS V202107.00
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -137,19 +136,43 @@ typedef struct injectionCampaign
 
 static void printApplicationArguments(int argc, char **argv);
 
-static void listInjectionTargets(const char *outputFilename, const target_t *target);
-static void printInjectionTarget(FILE *output, const target_t *target, const int depth);
+static void printInjectionTarget(FILE *output, target_t *target, int depth);
 
 target_t *getInjectionTarget(target_t *target, char *toSearch);
 
-static void runInjection(const target_t *target,
-						 const unsigned long injTime,
-						 const unsigned long timeoutNs,
-						 const unsigned long offsetByte,
-						 const unsigned long offsetBit);
+static void runSimulator(const thData_t *injectionArgs);
 
 #define CMD_LIST "--list"
 #define CMD_RUN "--run"
+#define CMD_GOLDEN "--golden"
+
+// exit codes:
+#define SUCCESSFUL_EXECUTION_EXIT_CODE 0
+#define INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE 1
+#define INJECTOR_THREAD_LAUNCH_FAILURE_EXIT_CODE 2
+#define GENERIC_ERROR_CODE 42
+
+static void execCmdList(int argc, char **argv);
+static void execCmdRun(int argc, char **argv);
+static void execCmdGolden(int argc, char **argv);
+
+#define DEBUG
+#ifdef DEBUG
+#define DEBUG_PRINT(format, ...) \
+    printf("D: " format, ##__VA_ARGS__)
+#else
+#define DEBUG_PRINT(x) \
+	do                 \
+	{                  \
+	} while (0)
+#endif
+
+/**
+ * List of injection targets for the current instance of the 
+ * FreeRTOS simulator.
+ * The list is initialized in main.
+ */
+static target_t *targets;
 
 /*-----------------------------------------------------------*/
 
@@ -158,100 +181,33 @@ int main(int argc, char **argv)
 	// print the application arguments for debugging purposes
 	printApplicationArguments(argc, argv);
 
+	if (argc < 2)
+	{
+		fprintf(stderr, "Please specify a command argument --(list|run|golden)\n");
+		return 1;
+	}
+
 	/**
 	 * Read the available injection targets from the tasks and timer modules.
 	 * 
 	 * TODO: possibly add more injection targets.
 	 */
-	target_t *targets = read_tasks_targets(NULL);
+	targets = read_tasks_targets(NULL);
 	targets = read_timer_targets(targets);
 
-	if (argc > 1 && strcmp(argv[1], CMD_LIST) == 0)
+	if (strcmp(argv[1], CMD_LIST) == 0)
 	{
-		listInjectionTargets("targets.txt", targets);
-
-		freeInjectionTargets(targets);
-		exit(0);
+		execCmdList(argc, argv);
 	}
-	else if (argc > 1 && strcmp(argv[1], CMD_RUN) == 0)
+	else if (strcmp(argv[1], CMD_RUN) == 0)
 	{
-		if (argc != 6)
-		{
-			fprintf(stdout, "Invalid number of arguments for --run.\n");
-			return 7;
-		}
-
-		const char *targetName = argv[2];
-		if (strncmp(targetName, "0", 1) == 0) {
-			printf("Running a golden execution...\n");
-			runInjection(NULL, 0UL, 0UL, 0UL, 0UL);
-		} else {
-			target_t *injectionTarget = getInjectionTarget(targets, (char *)targetName);
-
-			if (!injectionTarget)
-			{
-				fprintf(stdout, "Invalid injection target\n");
-				return 8;
-			}
-
-			const unsigned long injTime = atol(argv[3]);
-			const unsigned long offsetByte = atol(argv[4]);
-			const unsigned long offsetBit = atol(argv[5]);
-
-			printf("Running injection with parameters: %lu, %lu, %lu, %lu\n", injectionTarget->name,
-				injTime, offsetByte, offsetBit);
-			runInjection(injectionTarget, injTime, 3UL * 1000UL * 1000UL * 1000UL, offsetByte, offsetBit);
-		}
+		// TODO: option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
+		execCmdRun(argc, argv);
 	}
-
-	/*
-	// Example of a freeRTOS injector execution using runFreeRTOSInjection and waitFreeRTOSInjection
-	freeRTOSInstance instance;
-	target_t target = targets[0];
-	if (runFreeRTOSInjection(&instance, argv[0], target.address, 1000) == FREE_RTOS_FORK_SUCCESS) {
-		int exitCode = waitFreeRTOSInjection(&instance);
-		printf("The FreeRTOS instance completed with status code %d.\n", exitCode);
-	}
-
-	return 0;
-	*/
-
-	/*
-	Option --Force re-executes forcibly the golden execution
-	Option --List prints out all the possible targets for the injection campaign (fork + data collection)
-	Option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
-	*/
-
-	/*
-	Generate the golden execution process and collect results if no previous
-	golden execution output has been found or if --Force is used
-	*/
-	FILE *gefp = NULL;
-	gefp = fopen("golden.txt", "r");
-
-	if (gefp == NULL || (argc > 1 && strcmp(argv[1], "--force") == 0))
+	else if (strcmp(argv[1], CMD_GOLDEN) == 0)
 	{
-		freeRTOSInstance instance;
-		int pid = runFreeRTOSInjection(&instance, argv[0], NULL, 0, 0, 0);
-		if (pid < 0)
-		{
-			fprintf(stdout, "Couldn't create golden execution process.\n");
-			return 7;
-		}
-		else if (pid > 0)
-		{ // Father process
-			waitFreeRTOSInjection(&instance);
-			fprintf(stdout, "The forefather passed the wait.\n");
-		}
-		else
-		{ // Child process
-			prvInitialiseHeap();
-			main_blinky();
-		}
+		execCmdGolden(argc, argv);
 	}
-
-	if (gefp != NULL)
-		fclose(gefp);
 
 	/*
 	Read from file the injection details which is the target structure, how many injections have
@@ -404,6 +360,94 @@ int main(int argc, char **argv)
 }
 /*-----------------------------------------------------------*/
 
+static void execCmdList(int argc, char **argv)
+{
+	FILE *output = stdout;
+
+	if (argc == 3)
+	{
+		/**
+		 * Open the target output file
+		 */
+		output = fopen(argv[2], "w");
+		if (output == NULL)
+		{
+			char buf[256];
+			sprintf(buf, "Error opening the target file %s", argv[2]);
+			perror(buf);
+
+			exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
+		}
+	}
+
+	printInjectionTarget(output, targets, 0);
+
+	freeInjectionTargets(targets);
+	exit(SUCCESSFUL_EXECUTION_EXIT_CODE);
+}
+
+static void execCmdRun(int argc, char **argv)
+{
+	if (argc != 6)
+	{
+		fprintf(stderr, "Invalid number of arguments for %s.\n", CMD_RUN);
+		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
+	}
+
+	// read the golden runtime from the golden.txt file
+	FILE *golden = fopen("golden.txt", "r");
+	if (!golden)
+	{
+		fprintf(stderr, "golden.txt not found\n");
+		exit(GENERIC_ERROR_CODE);
+	}
+
+	unsigned long goldenExecTime;
+	if (fscanf(golden, "%lu", &goldenExecTime) != 1)
+	{
+		fprintf(stderr, "Cannot read the golden execution time\n");
+
+		fclose(golden);
+		exit(GENERIC_ERROR_CODE);
+	}
+
+	// TODO: replace with strol (atol does NOT detect errors)
+	unsigned long injTime = atol(argv[3]);
+	unsigned long offsetByte = atol(argv[4]);
+	unsigned long offsetBit = atol(argv[5]);
+
+	target_t *injTarget = getInjectionTarget(targets, argv[2]);
+
+	if (!injTarget)
+	{
+		fprintf(stderr, "Cannot find the injection target\n");
+
+		fclose(golden);
+		exit(GENERIC_ERROR_CODE);
+	}
+
+	// create a wrapper for the injection parameters
+	thData_t injection;
+	injection.address = injTarget->address;
+	injection.injTime = injTime;
+	injection.offsetByte = offsetByte;
+	injection.offsetBit = offsetBit;
+	injection.timeoutNs = 3 * goldenExecTime;
+
+	runSimulator(&injection);
+}
+
+static void execCmdGolden(int argc, char **argv)
+{
+	if (argc != 2)
+	{
+		fprintf(stderr, "The --golden command does not support additional parameters");
+		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
+	}
+
+	runSimulator(NULL);
+}
+
 void vApplicationMallocFailedHook(void)
 {
 	/* vApplicationMallocFailedHook() will only be called if
@@ -421,6 +465,8 @@ void vApplicationMallocFailedHook(void)
 	vAssertCalled(__LINE__, __FILE__);
 }
 /*-----------------------------------------------------------*/
+
+extern int mustEnd;
 
 void vApplicationIdleHook(void)
 {
@@ -448,25 +494,17 @@ void vApplicationIdleHook(void)
 			}
 		}
 	*/
-	
+
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
-	if(isIdleHighlander()){
-		fprintf(stdout, "The only task remaining is the IDLE task.\n");
-		if(isGolden){
-			unsigned long goldenTime = ulGetRunTimeCounterValue();
-			FILE *goldenfp = NULL;
-			goldenfp = fopen("golden.txt", "w");
-			if(goldenfp == NULL){
-				fprintf(stdout, "Couldn't open golden.txt for writing.\n");
-				exit(EXIT_FAILURE);
-			}
-			fprintf(goldenfp, "%lu\n", goldenTime);
-			fclose(goldenfp);
-		}
+	/*if (isIdleHighlander())
+	{
 		vTaskEndScheduler();
-		fprintf(stdout, "Executing past vTaskEndScheduler.\n"); // Never executed
+		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
+	}*/
+
+	if (mustEnd) {
+		vTaskEndScheduler();
 	}
-		
 }
 /*-----------------------------------------------------------*/
 
@@ -647,30 +685,7 @@ the stack and so not exists after this function exits. */
 	*pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
 
-static void listInjectionTargets(const char *outputFilename, const target_t *targets)
-{
-	char buf[256];
-
-	/**
-	 * Open the target output file
-	 */
-	FILE *outputFile = fopen(outputFilename, "w");
-	if (outputFile == NULL)
-	{
-		sprintf(buf, "Error opening the target file %s", outputFilename);
-		perror(buf);
-		exit(1);
-	}
-
-	/**
-	 * Iterate over the available injection targets
-	 */
-	printInjectionTarget(outputFile, targets, 0);
-
-	fclose(outputFile);
-}
-
-static void printInjectionTarget(FILE *output, const target_t *target, const int depth)
+static void printInjectionTarget(FILE *output, target_t *target, int depth)
 {
 	char typeBuffer[256];
 
@@ -702,7 +717,8 @@ target_t *getInjectionTarget(target_t *target, char *toSearch)
 	target_t *tmp = target;
 	while (tmp->next != NULL)
 	{
-		if (strcmp(tmp->name, toSearch) == 0) {
+		if (strcmp(tmp->name, toSearch) == 0)
+		{
 			return tmp;
 		}
 
@@ -721,40 +737,62 @@ target_t *getInjectionTarget(target_t *target, char *toSearch)
 
 static void printApplicationArguments(int argc, char **argv)
 {
-	printf("Application arguments: ");
+	char buffer[1024];
+	
+	sprintf(buffer, "%s", "Application arguments: ");
 	for (int i = 0; i < argc; i++)
 	{
-		printf("%s ", argv[i]);
+		sprintf(buffer, "%s %s", buffer, argv[i]);
 	}
-	printf("\n");
+
+	DEBUG_PRINT("%s \n", buffer);
 }
 
-static void runInjection(const target_t *target,
-						 const unsigned long injTime,
-						 const unsigned long timeoutNs,
-						 const unsigned long offsetByte,
-						 const unsigned long offsetBit)
+static void runSimulator(const thData_t *injectionArgs)
 {
-	if(target == NULL) {
-		isGolden = 1;
-		printf("is golden\n");	
-	}
-
-	thread_t thID;
-	if (target)
+	if (injectionArgs)
 	{
-		if (launchThread(&injectorFunction, target->address, injTime, timeoutNs, offsetByte, offsetBit, &thID) == INJECTOR_THREAD_FAILURE) {
-			fprintf(stdout, "Injector thread launch failure.\n");
-			exit(9);
+		// the simulation should perform an injection
+
+		// create the injection thread
+		thread_t injectorThread;
+		int resultCode = launchInjectorThread(&injectorFunction, injectionArgs, &injectorThread);
+
+		if (resultCode == INJECTOR_THREAD_FAILURE)
+		{
+			fprintf(stderr, "Injector thread launch failure.\n");
+			exit(INJECTOR_THREAD_LAUNCH_FAILURE_EXIT_CODE);
 		}
+
+		// detach the injector thread
+		detachThread(&injectorThread);
 	}
-	detachThread(&thID);
 
 	/* Launch the FreeRTOS */
 	prvInitialiseHeap();
 	main_blinky();
 
-	printf("main_blinky returned\n");
+	DEBUG_PRINT("Call to main_blinky completed\n");
+
+	if (!injectionArgs)
+	{
+		// golden execution
+		DEBUG_PRINT("The only task remaining is the IDLE task.\n");
+		unsigned long goldenTime = ulGetRunTimeCounterValue();
+		DEBUG_PRINT("Golden execution time: %lu.\n", goldenTime);
+
+		FILE *goldenfp = fopen("golden.txt", "w");
+		if (goldenfp == NULL)
+		{
+			fprintf(stdout, "Couldn't open golden.txt for writing.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		fprintf(goldenfp, "%lu\n", goldenTime);
+		fclose(goldenfp);
+	}
+
+	exit(43);
 
 	/* Check trace and determine the outcome of the simulation */
 	int result = 0, flag = 0;

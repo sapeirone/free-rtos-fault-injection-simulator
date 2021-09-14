@@ -12,12 +12,8 @@ typedef struct thData_s
     unsigned long injTime, timeoutNs, offsetByte, offsetBit;
 } thData_t;
 
-int launchThread(void* (*function) (void*),
-                 const void *address,
-                 const unsigned long injTime,
-                 const unsigned long timeoutNs,
-                 const unsigned long offsetByte,
-                 const unsigned long offsetBit,
+int launchInjectorThread(void* (*function) (void*),
+                 const thData_t *injectorArgs,
                  thread_t *id);
 
 int detachThread(thread_t *id);

@@ -7,6 +7,8 @@
 #include "sleep.h"
 #include "thread.h"
 
+int mustEnd = 0;
+
 void* injectorFunction(void *arg)
 {
     thData_t *data = (thData_t*) arg;
@@ -24,5 +26,6 @@ void* injectorFunction(void *arg)
     sleepNanoseconds(data->timeoutNs - data->injTime);
 
     printf("Goodbye!\n");
-    vTaskEndScheduler();
+    // vTaskEndScheduler();
+    mustEnd = 1;
 }
