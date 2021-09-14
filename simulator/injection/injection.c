@@ -3,28 +3,33 @@
 
 #include <stdio.h>
 
-#include "injector.h"
-#include "sleep.h"
-#include "thread.h"
+#include "simulator.h"
 
 int mustEnd = 0;
 
-void* injectorFunction(void *arg)
+void *injectorFunction(void *arg)
 {
-    thData_t *data = (thData_t*) arg;
+    thData_t *data = (thData_t *)arg;
 
-    printf("injectorFunction called with args: %lu, %lu, %lu, %lu, %lu\n", data->address,
-           data->injTime,
-           data->timeoutNs, data->offsetByte, data->offsetBit);
+    DEBUG_PRINT("Requested injection address: %lu\n", data->address);
+    DEBUG_PRINT("Requested injection time: %lu\n", data->injTime);
+    DEBUG_PRINT("Requested injection offset byte: %lu\n", data->offsetByte);
+    DEBUG_PRINT("Requested injection offset bit: %lu\n", data->offsetBit);
 
     sleepNanoseconds(data->injTime);
 
-    printf("Performing the injection...\n");
+    unsigned long currentTime = ulGetRunTimeCounterValue();
+
+    DEBUG_PRINT("Performing the injection at time %lu...\n", currentTime);
     *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
-    printf("Injection completed\n");
+    DEBUG_PRINT("Injection completed\n");
 
-    sleepNanoseconds(data->timeoutNs - data->injTime);
+    DEBUG_PRINT("Waiting the execution timeout\n");
+    sleepNanoseconds(data->timeoutNs - currentTime);
 
-    printf("Goodbye!\n");
+    DEBUG_PRINT("The execution timeout expired\n");
     vTaskEndScheduler();
+
+    // vTaskEndScheduler should NOT return
+    DEBUG_PRINT("injectorFunction is executing past vTaskEndScheduler!!!\n");
 }

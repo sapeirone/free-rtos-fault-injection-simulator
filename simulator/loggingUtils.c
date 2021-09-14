@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "loggingUtils.h"
 #include "FreeRTOS.h"
 #include "task.h"

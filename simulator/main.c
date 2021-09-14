@@ -50,19 +50,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* Platform dependent ASM utilities */
-#include "asm.h"
-
-#include "injector.h"
-#include "fork.h"
-#include "thread.h"
-#include "loggingUtils.h"
-#include "sleep.h"
+#include "simulator.h"
 
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* Global variables */
-int isGolden = 0;
+extern int isGolden;
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
@@ -142,30 +135,9 @@ target_t *getInjectionTarget(target_t *target, char *toSearch);
 
 static void runSimulator(const thData_t *injectionArgs);
 
-#define CMD_LIST "--list"
-#define CMD_RUN "--run"
-#define CMD_GOLDEN "--golden"
-
-// exit codes:
-#define SUCCESSFUL_EXECUTION_EXIT_CODE 0
-#define INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE 1
-#define INJECTOR_THREAD_LAUNCH_FAILURE_EXIT_CODE 2
-#define GENERIC_ERROR_CODE 42
-
 static void execCmdList(int argc, char **argv);
 static void execCmdRun(int argc, char **argv);
 static void execCmdGolden(int argc, char **argv);
-
-#define DEBUG
-#ifdef DEBUG
-#define DEBUG_PRINT(format, ...) \
-    printf("D: " format, ##__VA_ARGS__)
-#else
-#define DEBUG_PRINT(x) \
-	do                 \
-	{                  \
-	} while (0)
-#endif
 
 /**
  * List of injection targets for the current instance of the 
@@ -246,7 +218,7 @@ int main(int argc, char **argv)
 	char teBuffer[LENBUF];
 	unsigned long nTicksGoldenEx = 0, estTotTimeMin = 0, estTotTimeMax = 0;
 
-	tefp = fopen("golden.txt", "r");
+	tefp = fopen(GOLDEN_FILE_PATH, "r");
 	if (tefp == NULL)
 	{
 		fprintf(stderr, "Couldn't open golden execution results file.\n");
@@ -394,11 +366,11 @@ static void execCmdRun(int argc, char **argv)
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
-	// read the golden runtime from the golden.txt file
-	FILE *golden = fopen("golden.txt", "r");
+	// read the golden runtime from the golden file
+	FILE *golden = fopen(GOLDEN_FILE_PATH, "r");
 	if (!golden)
 	{
-		fprintf(stderr, "golden.txt not found\n");
+		fprintf(stderr, "%s not found\n", GOLDEN_FILE_PATH);
 		exit(GENERIC_ERROR_CODE);
 	}
 
@@ -410,6 +382,7 @@ static void execCmdRun(int argc, char **argv)
 		fclose(golden);
 		exit(GENERIC_ERROR_CODE);
 	}
+	DEBUG_PRINT("Execution timeout is %lu\n", goldenExecTime);
 
 	// TODO: replace with strol (atol does NOT detect errors)
 	unsigned long injTime = atol(argv[3]);
@@ -734,7 +707,7 @@ target_t *getInjectionTarget(target_t *target, char *toSearch)
 static void printApplicationArguments(int argc, char **argv)
 {
 	char buffer[1024];
-	
+
 	sprintf(buffer, "%s", "Application arguments: ");
 	for (int i = 0; i < argc; i++)
 	{
@@ -763,6 +736,10 @@ static void runSimulator(const thData_t *injectionArgs)
 		// detach the injector thread
 		detachThread(&injectorThread);
 	}
+	else
+	{
+		isGolden = 1;
+	}
 
 	/* Launch the FreeRTOS */
 	prvInitialiseHeap();
@@ -770,22 +747,9 @@ static void runSimulator(const thData_t *injectionArgs)
 
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
-	if (!injectionArgs)
+	if (isGolden)
 	{
 		// golden execution
-		DEBUG_PRINT("The only task remaining is the IDLE task.\n");
-		unsigned long goldenTime = ulGetRunTimeCounterValue();
-		DEBUG_PRINT("Golden execution time: %lu.\n", goldenTime);
-
-		FILE *goldenfp = fopen("golden.txt", "w");
-		if (goldenfp == NULL)
-		{
-			fprintf(stdout, "Couldn't open golden.txt for writing.\n");
-			exit(EXIT_FAILURE);
-		}
-
-		fprintf(goldenfp, "%lu\n", goldenTime);
-		fclose(goldenfp);
 	}
 
 	exit(43);
@@ -819,4 +783,20 @@ static void runSimulator(const thData_t *injectionArgs)
 	/* Open the memory mapped file and increase the relative counter */
 
 	exit(42);
+}
+
+void writeGoldenFile()
+{
+	unsigned long goldenTime = ulGetRunTimeCounterValue();
+	DEBUG_PRINT("Golden execution time: %lu.\n", goldenTime);
+
+	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
+	if (goldenfp == NULL)
+	{
+		fprintf(stdout, "Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
+		exit(EXIT_FAILURE);
+	}
+
+	fprintf(goldenfp, "%lu\n", goldenTime);
+	fclose(goldenfp);
 }

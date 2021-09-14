@@ -91,6 +91,9 @@
 #include "timers.h"
 #include "semphr.h"
 
+#include "simulator.h"
+extern int isGolden;
+
 /* Priorities at which the tasks are created. */
 #define mainQUEUE_RECEIVE_TASK_PRIORITY		( tskIDLE_PRIORITY + 2 )
 #define	mainQUEUE_SEND_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
@@ -165,7 +168,7 @@ void main_blinky( void )
 
 		/* Start the tasks and timer running. */
 		vTaskStartScheduler();
-		fprintf(stdout, "Executing past vTaskStartScheduler.\n");
+		DEBUG_PRINT("Executing past vTaskStartScheduler.\n");
 	}
 }
 /*-----------------------------------------------------------*/
@@ -196,9 +199,11 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TASK;
 		While in the Blocked state this task will not consume any CPU time. */
 		vTaskDelayUntil( &xNextWakeTime, xBlockTime );
 
-		// static int i = 0;
-		// if(i++ > 10)
-		// 	vTaskDelete( NULL );
+		if (isGolden) {
+			static int i = 0;
+			if (i++ > 10)
+				vTaskDelete(NULL);
+		}
 	}
 }
 /*-----------------------------------------------------------*/
@@ -247,9 +252,11 @@ uint32_t ulReceivedValue;
 		{
 			printf( "Message received from task\r\n" );
 			
-			// static int j = 0;
-			// if(j++ > 1000)
-			// 	vTaskDelete( NULL );
+			if (isGolden) {
+				static int j = 0;
+				if (j++ > 1000)
+					vTaskDelete(NULL);
+			}
 		}
 		else if( ulReceivedValue == mainVALUE_SENT_FROM_TIMER )
 		{
