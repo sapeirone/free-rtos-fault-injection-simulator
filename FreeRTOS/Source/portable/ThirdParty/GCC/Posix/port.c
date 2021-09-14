@@ -68,6 +68,9 @@
 /*-----------------------------------------------------------*/
 
 #define SIG_RESUME SIGUSR1
+#define SIG_INTERRUPT SIGUSR2
+
+static uint32_t (*interruptHandler)( void ) = NULL
 
 typedef struct THREAD
 {
@@ -525,7 +528,9 @@ static void prvResumeThread( Thread_t *xThreadId )
 /*-----------------------------------------------------------*/
 
 static void vPortInterruptsHandler () {
-    printf("Hola interrupts\n");
+    if (interruptHandler) {
+        interruptHandler();
+    }
 }
 
 static void prvSetupSignalsAndSchedulerPolicy( void )
@@ -575,20 +580,32 @@ int iRet;
         prvFatalError( "sigaction", errno );
     }
 
+    /**
+     * Setup the signal handler for the generic interrupts
+     */
     struct sigaction siginterrupt;
     siginterrupt.sa_flags = 0;
     siginterrupt.sa_handler = vPortInterruptsHandler;
-    sigaddset(&siginterrupt.sa_mask, SIGUSR1);
-    iRet = sigaction( SIGUSR1, &siginterrupt, NULL );
-    if ( iRet )
+    // use SIG_INTERRUPT to signal generic interrupts
+    sigaddset(&siginterrupt.sa_mask, SIG_INTERRUPT);
+    iRet = sigaction(SIG_INTERRUPT, &siginterrupt, NULL);
+    if (iRet)
     {
-        prvFatalError( "sigaction", errno );
+        prvFatalError("sigaction", errno);
     }
 }
 
-void vPortGenerateSimulatedInterrupt( uint32_t ulInterruptNumber ) {
-    pthread_kill( hMainThread, SIGUSR1);
+void vPortGenerateSimulatedInterrupt(uint32_t ulInterruptNumber)
+{
+    // signal the main thread
+    pthread_kill(hMainThread, SIG_INTERRUPT);
 }
+
+void vPortSetInterruptHandler( uint32_t ulInterruptNumber, uint32_t (*pvHandler)( void ) ) {
+    (void)ulInterruptNumber;
+    interruptHandler = pvHandler;
+}
+
 /*-----------------------------------------------------------*/
 
 unsigned long ulPortGetRunTime( void )

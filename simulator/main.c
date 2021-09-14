@@ -473,6 +473,7 @@ void vApplicationIdleHook(void)
 	if (isIdleHighlander())
 	{
 		if (isGolden) {
+			vPortGenerateSimulatedInterrupt(16);
 			writeGoldenFile();
 		}
 		vPortGenerateSimulatedInterrupt( 5 );
