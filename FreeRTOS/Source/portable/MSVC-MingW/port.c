@@ -398,6 +398,7 @@ CONTEXT xContext;
 		xInsideInterrupt = pdFALSE;
 		WaitForMultipleObjects( sizeof( pvObjectList ) / sizeof( void * ), pvObjectList, TRUE, INFINITE );
 		if(hasToTerminate){
+			ReleaseMutex( pvInterruptEventMutex );
 			break;
 		}
 
@@ -577,8 +578,10 @@ void vPortEndScheduler( void )
 	pxThreadState = ( ThreadState_t *) *( ( size_t * ) pxCurrentTCB );
 	SuspendThread( pxThreadState->pvThread );*/
 	hasToTerminate = 1;
+	taskENTER_CRITICAL();
 	SetEvent( pvInterruptEvent );
-
+	vTaskDelete( xTaskGetIdleTaskHandle() );
+	
 	return;
 	//exit( 0 );
 }
