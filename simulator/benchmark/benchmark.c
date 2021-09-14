@@ -16,14 +16,14 @@ static int compare(const void *elem1, const void *elem2);
 void qsort_bench() {
   struct myStringStruct array[MAXARRAY];
   FILE *fp;
-  int i, count=0;
+  int count=0;
 
   fp = fopen("input_small.dat", "r");
   if(fp == NULL){
     fprintf(stderr, "Error fopen in qsort_bench\n");
   }
 
-  while((fscanf(fp, "%s", &array[count].qstring) == 1) && (count < MAXARRAY)) {
+  while((count < MAXARRAY) && (fscanf(fp, "%s", &array[count].qstring) == 1)) {
     count++;
   }
 
@@ -31,11 +31,11 @@ void qsort_bench() {
 
   fprintf(stdout, "Sorting %d elements.\n", count);
   qsort(array, count, sizeof(struct myStringStruct), compare);
-  /*
-  for(i = 0; i < count; i++){
-    if((i%1000) == 0)
+  
+  for(int i = 0; i < count; i++){
+    if((i%1000) == 0 || i == count-1)
       fprintf(stdout, "array[%d] = %s\n", i, array[i].qstring);
-  }*/
+  }
 
   return;
 }
