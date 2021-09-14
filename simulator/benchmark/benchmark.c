@@ -18,7 +18,7 @@ void qsort_bench() {
   FILE *fp;
   int count=0;
 
-  fp = fopen("./simulator/input_data/input_small.dat", "r");
+  fp = fopen("simulator/input_data/input_small.dat", "r");
   if(fp == NULL){
     fprintf(stderr, "Error fopen in qsort_bench\n");
   }
