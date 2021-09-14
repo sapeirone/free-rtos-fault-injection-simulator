@@ -186,6 +186,8 @@ TIMECAPS xTimeCaps;
 		be available. */
 		WaitForSingleObject( pvInterruptEventMutex, INFINITE );
 
+		if (hasToTerminate) return;
+
 		/* The timer has expired, generate the simulated tick event. */
 		ulPendingInterrupts |= ( 1 << portINTERRUPT_TICK );
 
@@ -577,8 +579,10 @@ void vPortEndScheduler( void )
 	ThreadState_t *pxThreadState;
 	pxThreadState = ( ThreadState_t *) *( ( size_t * ) pxCurrentTCB );
 	SuspendThread( pxThreadState->pvThread );*/
-	hasToTerminate = 1;
 	taskENTER_CRITICAL();
+	hasToTerminate = 1;
+	taskEXIT_CRITICAL();
+	
 	SetEvent( pvInterruptEvent );
 	vTaskDelete( xTaskGetIdleTaskHandle() );
 	
