@@ -472,9 +472,13 @@ void vApplicationIdleHook(void)
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
 	if (isIdleHighlander())
 	{
-		if (isGolden)
+		if (isGolden) {
 			writeGoldenFile();
+<<<<<<< HEAD
 		vPortGenerateSimulatedInterrupt( 5 );
+=======
+		}
+>>>>>>> origin/dev
 		vTaskEndScheduler();
 		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
 	}
