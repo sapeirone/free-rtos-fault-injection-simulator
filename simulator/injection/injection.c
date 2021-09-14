@@ -11,7 +11,7 @@ void *injectorFunction(void *arg)
 {
     thData_t *data = (thData_t *)arg;
 
-    DEBUG_PRINT("Requested injection address: %lu\n", data->address);
+    DEBUG_PRINT("Requested injection address: %p\n", data->address);
     DEBUG_PRINT("Requested injection time: %lu\n", data->injTime);
     DEBUG_PRINT("Requested injection offset byte: %lu\n", data->offsetByte);
     DEBUG_PRINT("Requested injection offset bit: %lu\n", data->offsetBit);
@@ -32,4 +32,6 @@ void *injectorFunction(void *arg)
 
     // vTaskEndScheduler should NOT return
     DEBUG_PRINT("injectorFunction is executing past vTaskEndScheduler!!!\n");
+
+    return NULL;
 }

@@ -134,6 +134,7 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth);
 target_t *getInjectionTarget(target_t *target, char *toSearch);
 
 static void runSimulator(const thData_t *injectionArgs);
+static void writeGoldenFile();
 
 static void execCmdList(int argc, char **argv);
 static void execCmdRun(int argc, char **argv);
@@ -471,6 +472,8 @@ void vApplicationIdleHook(void)
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
 	if (isIdleHighlander())
 	{
+		if (isGolden)
+			writeGoldenFile();
 		vTaskEndScheduler();
 		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
 	}
@@ -747,11 +750,6 @@ static void runSimulator(const thData_t *injectionArgs)
 
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
-	if (isGolden)
-	{
-		// golden execution
-	}
-
 	exit(43);
 
 	/* Check trace and determine the outcome of the simulation */
@@ -785,7 +783,7 @@ static void runSimulator(const thData_t *injectionArgs)
 	exit(42);
 }
 
-void writeGoldenFile()
+static void writeGoldenFile()
 {
 	unsigned long goldenTime = ulGetRunTimeCounterValue();
 	DEBUG_PRINT("Golden execution time: %lu.\n", goldenTime);
