@@ -208,9 +208,9 @@ static void prvQSortTask(void *pvParameters)
 static unsigned long prvInterruptHandler( void )
 {
 	uint32_t ulReceivedValue;
-	BaseType_t * const HigherPrioTaskWoken = pdFALSE;
+	BaseType_t *const HigherPrioTaskWoken = pdFALSE;
 	fprintf(stdout, "Handler has been called.\n");
-	xQueueReceiveFromISR( xQueue, &ulReceivedValue, &HigherPrioTaskWoken );
+	xQueueReceiveFromISR( xQueue, &ulReceivedValue, HigherPrioTaskWoken );
 	printTrace();
 
     return pdTRUE;
