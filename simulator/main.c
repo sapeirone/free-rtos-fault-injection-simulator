@@ -281,7 +281,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	}
 
 	const char *input = argv[2];
-	char choice = (argc == 4 && strncmp(argv[3], "-y", 2) == 0) ? 'y' : 'n';
+	char choice = (argc == 4 && strncmp(argv[3], "-y", 2) == 0) ? 'y' : '0';
 
 	/**
 	 * Read from file the injection details which is the target structure, 
@@ -316,8 +316,8 @@ static void execInjectionCampaign(int argc, char **argv)
 	fprintf(stdout, "\nEstimated execution times:\n");
 
 	printMany(stdout, '-', 104);
-	fprintf(stdout, "\n| %-30s | %8s | %10s | %5s | %5s | %12s | %12s |\n", 
-		"Target", "nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
+	fprintf(stdout, "\n| %-30s | %8s | %10s | %5s | %5s | %12s | %12s |\n",
+			"Target", "nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -389,9 +389,10 @@ static void execInjectionCampaign(int argc, char **argv)
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
-			// verify the median injection time does not exceed the 
+			// verify the median injection time does not exceed the
 			// execution time of the golden simulation
-			if (campaign.medTimeRange > nanoGoldenEx) {
+			if (campaign.medTimeRange > nanoGoldenEx)
+			{
 				fprintf(stderr, "Invalid injection for target %s\n", campaign.targetStructure);
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
@@ -401,20 +402,20 @@ static void execInjectionCampaign(int argc, char **argv)
 			unsigned long injTime;
 
 			// pick a distribution
-			switch (injectionCampaigns[i].distribution)
+			switch (campaign.distribution)
 			{
 			case 'g':
 				// TODO
 				break;
 			case 'u':
 			default:
-				injTime = injectionCampaigns[i].medTimeRange;
+				injTime = campaign.medTimeRange;
 
 				// compute the width of the injection time range
-				int lowerWidth = min(injectionCampaigns[i].medTimeRange, injectionCampaigns[i].variance);
-				int upperWidth = min(injectionCampaigns[i].variance, nanoGoldenEx - injectionCampaigns[i].medTimeRange);
+				int lowerWidth = min(campaign.medTimeRange, campaign.variance);
+				int upperWidth = min(campaign.variance, nanoGoldenEx - campaign.medTimeRange);
 				int range = max(1, lowerWidth + upperWidth);
-				injTime = (rand() % range) - (range / 2) + (signed) injectionCampaigns[i].medTimeRange;
+				injTime = (rand() % range) - (range / 2) + (signed)campaign.medTimeRange;
 			}
 
 			freeRTOSInstance instance;
@@ -424,13 +425,34 @@ static void execInjectionCampaign(int argc, char **argv)
 				fprintf(stderr, "Couldn't create child process.\n");
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
-			else if (ret > 0)
-			{ 
-				// Father process
-				int exitCode = waitFreeRTOSInjection(&instance);
-				DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %d...\n\n", nCurrentInjection, nTotalInjections, exitCode);
+
+			// Father process
+			int exitCode = waitFreeRTOSInjection(&instance);
+			DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %d...\n\n", nCurrentInjection, nTotalInjections, exitCode);
+
+			switch (exitCode)
+			{
+			case EXECUTION_RESULT_HANG_EXIT_CODE:
+				campaign.res.nHang++;
+				break;
+			case EXECUTION_RESULT_ERROR_EXIT_CODE:
+				campaign.res.nError++;
+				break;
+			case EXECUTION_RESULT_DELAY_EXIT_CODE:
+				campaign.res.nDelay++;
+				break;
+			case EXECUTION_RESULT_SILENT_EXIT_CODE:
+				campaign.res.nSilent++;
+				break;
+			case EXECUTION_RESULT_CRASH_EXIT_CODE:
+			default:
+				campaign.res.nCrash++;
 			}
 		}
+
+		DEBUG_PRINT("Campaign %s: nHang=%d, nError=%d, nDelay=%d, nSilent=%d, nCrash=%d\n",
+					campaign.targetStructure, campaign.res.nHang, campaign.res.nError,
+					campaign.res.nDelay, campaign.res.nSilent, campaign.res.nCrash);
 	}
 }
 
@@ -863,7 +885,8 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	*list = (injectionCampaign_t *)malloc(0);
 	while (fgets(icBuffer, LENBUF - 1, inputCampaign) != NULL)
 	{
-		if (icBuffer[0] == '#') {
+		if (icBuffer[0] == '#')
+		{
 			continue;
 		}
 

@@ -9,7 +9,7 @@
 
 typedef struct injectionResults
 {
-	int nCrash, nHang, nSilent, nDelay, nNoError;
+	int nCrash, nHang, nSilent, nDelay, nError;
 } injectionResults_t;
 
 typedef struct injectionCampaign
