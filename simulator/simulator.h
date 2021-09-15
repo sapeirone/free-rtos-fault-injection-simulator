@@ -23,8 +23,16 @@ int isGolden;
 // exit codes:
 #define SUCCESSFUL_EXECUTION_EXIT_CODE 0
 #define INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE 1
-#define INJECTOR_THREAD_LAUNCH_FAILURE_EXIT_CODE 2
-#define GENERIC_ERROR_CODE 42
+#define INVALID_PARAMETERS_EXIT_CODE 2
+#define INJECTOR_THREAD_LAUNCH_FAILURE_EXIT_CODE 3
+#define GENERIC_ERROR_EXIT_CODE 10
+
+// FreeRTOS execution exit codes:
+#define EXECUTION_RESULT_SILENT_EXIT_CODE 42
+#define EXECUTION_RESULT_DELAY_EXIT_CODE 44
+#define EXECUTION_RESULT_ERROR_EXIT_CODE 46
+#define EXECUTION_RESULT_HANG_EXIT_CODE 48
+#define EXECUTION_RESULT_CRASH_EXIT_CODE 50
 
 #ifdef DEBUG
 #define DEBUG_PRINT(format, ...) \
@@ -35,3 +43,7 @@ int isGolden;
 	{                  \
 	} while (0)
 #endif
+
+// useful macros
+#define min(a, b) ((a < b) ? a : b)
+#define max(a, b) ((a > b) ? a : b)
