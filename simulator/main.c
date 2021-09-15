@@ -427,7 +427,7 @@ static void execInjectionCampaign(int argc, char **argv)
 			else if (ret > 0)
 			{ 
 				// Father process
-				unsigned long exitCode = waitFreeRTOSInjection(&instance);
+				int exitCode = waitFreeRTOSInjection(&instance);
 				DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %d...\n\n", nCurrentInjection, nTotalInjections, exitCode);
 			}
 		}
@@ -735,7 +735,7 @@ static void runSimulator(const thData_t *injectionArgs)
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
 	if (isGolden)
-		exit(EXIT_FAILURE);
+		exit(EXIT_SUCCESS);
 
 	/**
 	 * Check trace and determine the outcome of the simulation.

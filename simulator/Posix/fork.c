@@ -56,5 +56,9 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
     int exitCode;
     waitpid(instance->pid, &exitCode, 0);
 
-    return WEXITSTATUS(exitCode);
+    if (WIFEXITED(exitCode)) {
+        return WEXITSTATUS(exitCode);
+    } else {
+        return -1; // TODO: add more cases
+    }
 }
