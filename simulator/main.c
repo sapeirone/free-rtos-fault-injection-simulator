@@ -51,7 +51,9 @@
 #include "task.h"
 
 #include "simulator.h"
+#include "benchmark/benchmark.h"
 
+extern struct myStringStruct array[MAXARRAY];
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* Global variables */
@@ -752,7 +754,8 @@ static void runSimulator(const thData_t *injectionArgs)
 
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
-	exit(43);
+	if(isGolden)
+		exit(EXIT_SUCCESS);
 
 	/* Check trace and determine the outcome of the simulation.
 	 * Crash = 50
@@ -773,7 +776,8 @@ static void runSimulator(const thData_t *injectionArgs)
 			if(delay < 5000)			// Silent execution, correct output
 			{ 
 				exit(42);
-			} else						// Delayed execution, correct output
+			}
+			else						// Delayed execution, correct output
 			{ 
 				exit(44);
 			}
@@ -783,7 +787,8 @@ static void runSimulator(const thData_t *injectionArgs)
 			if(delay < 5000)			// Error execution, incorrect output
 			{ 
 				exit(46);
-			} else						// Hang execution, incorrect output
+			}
+			else						// Hang execution, incorrect output
 			{ 
 				exit(48);
 			}
@@ -808,9 +813,26 @@ int traceOutputIsCorrect(){
 }
 
 int executionResultIsCorrect(){
+	int result = 1;
+	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
+	if (goldenfp == NULL)
+	{
+		fprintf(stdout, "Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
+		exit(EXIT_FAILURE);
+	}
 
+	char buffer[LENBUF];
+	fscanf(goldenfp, "%s\n", buffer); // Ingore first line, the goldenExecutionTime
+	for(int i = 0; i < MAXARRAY; i++){
+		fscanf(goldenfp, "%s\n", buffer);
+		if(strcmp(buffer, array[i].qstring) != 0){
+			result = 0;
+			break;
+		}
+  	}
+	fclose(goldenfp);
 
-	return 1;
+	return result;
 }
 
 static void writeGoldenFile()
@@ -826,5 +848,8 @@ static void writeGoldenFile()
 	}
 
 	fprintf(goldenfp, "%lu\n", goldenTime);
+	for(int i = 0; i < MAXARRAY; i++){
+      fprintf(stdout, "%s\n", i, array[i].qstring);
+  	}
 	fclose(goldenfp);
 }
