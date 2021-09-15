@@ -10,7 +10,7 @@
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
-                         const void *target,
+                         const char *target,
                          const unsigned long time,
                          const unsigned long offsetByte,
                          const unsigned long offsetBit)
@@ -32,9 +32,6 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     char timeBuffer[16];
     sprintf(timeBuffer, "%d", time);
 
-    char targetBuffer[16];
-    sprintf(targetBuffer, "%d", target);
-
     char offsetByteBuffer[16];
     sprintf(offsetByteBuffer, "%d", offsetByte);
 
@@ -43,7 +40,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
 
     char *args[7] = {
         injectorPath, "--run",
-        targetBuffer, timeBuffer,
+        target, timeBuffer,
         offsetByteBuffer, offsetBitBuffer,
         NULL};
     execv(injectorPath, args);

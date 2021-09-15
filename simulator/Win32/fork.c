@@ -9,7 +9,7 @@
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
-                         const void *target,
+                         const char *target,
                          const unsigned long time,
                          const unsigned long offsetByte,
                          const unsigned long offsetBit)

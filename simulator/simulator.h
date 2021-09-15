@@ -17,6 +17,7 @@ int isGolden;
 
 #define CMD_LIST "--list"
 #define CMD_RUN "--run"
+#define CMD_CAMPAIGN "--campaign"
 #define CMD_GOLDEN "--golden"
 
 // exit codes:

@@ -139,6 +139,9 @@ static void writeGoldenFile();
 static void execCmdList(int argc, char **argv);
 static void execCmdRun(int argc, char **argv);
 static void execCmdGolden(int argc, char **argv);
+static void execInjectionCampaign(int argc, char **argv);
+
+static int readInjectionCampaignList(const char *filename, injectionCampaign_t **campaignList);
 
 /**
  * List of injection targets for the current instance of the 
@@ -181,153 +184,10 @@ int main(int argc, char **argv)
 	{
 		execCmdGolden(argc, argv);
 	}
-
-	/*
-	Read from file the injection details which is the target structure, how many injections have
-	to be tested, the median of the time range, the variance over the time range and the distribution
-	(by default a Gaussian).
-	Prototype of the input .csv:
-	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
-	Returns a list of struct injection campaigns.
-	*/
-	int icI = 0;
-	FILE *icfp = NULL;
-	char icBuffer[LENBUF];
-	injectionCampaign_t *icS = (injectionCampaign_t *)malloc(0);
-
-	icfp = fopen("input.csv", "r");
-	if (icfp == NULL)
+	else if (strcmp(argv[1], CMD_CAMPAIGN) == 0)
 	{
-		fprintf(stderr, "Couldn't open input file input.csv.\n");
-		return 1;
+		execInjectionCampaign(argc, argv);
 	}
-
-	while (fgets(icBuffer, LENBUF - 1, icfp) != NULL)
-	{
-		icS = (injectionCampaign_t *)realloc(icS, (icI + 1) * sizeof(injectionCampaign_t));
-		sscanf(icBuffer, "%s;%d;%lu;%lu;%s;", icS[icI].targetStructure, &icS[icI].nInjections,
-			   &icS[icI].medTimeRange, &icS[icI].variance, icS[icI].distr);
-		++icI;
-	}
-	fclose(icfp);
-
-	/*
-	Print out an time extimation of minimum and maximum execution times for the whole simulation.
-	The user must input (Y/n) to confirm execution.
-	*/
-	FILE *tefp = NULL;
-	char teBuffer[LENBUF];
-	unsigned long nTicksGoldenEx = 0, estTotTimeMin = 0, estTotTimeMax = 0;
-
-	tefp = fopen(GOLDEN_FILE_PATH, "r");
-	if (tefp == NULL)
-	{
-		fprintf(stderr, "Couldn't open golden execution results file.\n");
-		return 2;
-	}
-	fgets(teBuffer, LENBUF - 1, tefp);
-	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
-
-	fprintf(stdout, "Estimated execution times:\nTarget\tnExecs\ttMed\tvar\tdistr\testTimeMin\testTimeMax");
-	for (int i = 0; i < icI; ++i)
-	{
-		unsigned long estTimeMin = icS[i].nInjections * nTicksGoldenEx;
-		unsigned long estTimeMax = estTimeMin * 3; //300% of golden execution time, for each injection in the campaign
-		fprintf(stdout, "%s\t%d\t%lu\t%lu\t%s\t%lu\t%lu\n", icS[icI].targetStructure, icS[icI].nInjections,
-				icS[icI].medTimeRange, icS[icI].variance, icS[icI].distr, estTimeMin, estTimeMax);
-		estTotTimeMin += estTimeMin;
-		estTotTimeMax += estTimeMax;
-	}
-	fprintf(stdout, "TOTAL\t_\t_\t_\t_\t%lu\t%lu", estTotTimeMin, estTotTimeMax);
-
-	fclose(tefp);
-
-	/*
-	For each line in the input .csv, generate a injection campaign.
-	A for loop launches the iFork() of the forefather.
-	Each father (son of the forefather), launches a thread instance of the FreeRTOS + Injector.
-	The forefather waits for the father: if the return value of the wait is different from 0, the
-	forefather adds 1 to the "crash" entry for that campaign.
-	Each father awaits the 300% golden execution time and then reads the trace, unless the FreeRTOS returned
-	by itself sooner. The father decides which termination has been performed and increases the relative
-	statistic in the memory mapped file for that campaign.
-	Completing injection campaigns advances a general completion bar.
-	*/
-	for (int i = 0; i < icI; ++i)
-	{ // For each injection campaign
-		for (int j = 0; j < icS[i].nInjections; ++j)
-		{ // For each injection in a campaign
-			target_t *injTarget = getInjectionTarget(targets, icS[i].targetStructure);
-			if (injTarget == NULL)
-			{
-				fprintf(stderr, "No target with name %s was found.\n", icS[i].targetStructure);
-				return 4;
-			}
-
-			srand((unsigned int)time(NULL));					 //generate random seed
-			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
-			unsigned long offsetBit = rand() % 8;				 //select bit to inject
-			unsigned long injTime;
-
-			switch (icS[i].distr[0])
-			{ //Pick a distribution
-			case 'g':
-			case 'G': // Gaussian
-				// TODO
-				break;
-			case 'u':
-			case 'U':																								 // Uniform
-				injTime = icS[i].medTimeRange;																		 //if delta!=0 select time in interval
-				rand() % 2 ? (injTime += icS[i].variance) : (injTime = abs(injTime - (signed long)icS[i].variance)); //choose if before or after selected time
-				break;
-			default:
-				fprintf(stderr, "No distribution with name %s is available.\n", icS[i].distr);
-				return 5;
-			}
-
-			freeRTOSInstance instance;
-			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->address, injTime, offsetByte, offsetBit);
-			if (pid < 0)
-			{
-				fprintf(stdout, "Couldn't create child process.\n");
-				return 6;
-			}
-			else if (pid > 0)
-			{ // Father process
-				waitFreeRTOSInjection(&instance);
-			}
-		}
-	}
-
-	/* Free the icS structure of injection campaigns allocated when reading the "input.csv" file */
-	free(icS);
-
-	/*
-	Once all the injection campaigns have been completed, the forefather opens the output file and
-	prints on screen some statistics.
-	*/
-	FILE *stfp = NULL;
-	injectionCampaign_t stBuffer;
-
-	stfp = fopen("results.dat", "rb");
-	if (stfp == NULL)
-	{
-		fprintf(stderr, "Couldn't open golden execution results file.\n");
-		return 3;
-	}
-
-	fprintf(stdout, "Execution statistics:\nTarget\tCrash\tHang\tSilent\tDelay\tNoError\n");
-	for (int i = 0; i < icI; ++i)
-	{
-		fread(&stBuffer, sizeof(injectionCampaign_t), 1, stfp);
-		fprintf(stdout, "%s\t%.3lu\t%.3lu\t%.3lu\t%.3lu\t%.3lu\n", stBuffer.targetStructure,
-				stBuffer.res.nCrash / stBuffer.nInjections, stBuffer.res.nHang / stBuffer.nInjections,
-				stBuffer.res.nSilent / stBuffer.nInjections, stBuffer.res.nDelay / stBuffer.nInjections,
-				stBuffer.res.nNoError / stBuffer.nInjections);
-	}
-
-	// terminate
-	fclose(stfp);
 
 	return 0;
 }
@@ -422,6 +282,148 @@ static void execCmdGolden(int argc, char **argv)
 	runSimulator(NULL);
 }
 
+static void execInjectionCampaign(int argc, char **argv)
+{
+	if (argc != 3)
+	{
+		fprintf(stderr, "Invalid number of arguments for %s.\n", CMD_CAMPAIGN);
+		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
+	}
+
+	const char *input = argv[2];
+
+	/*
+	Read from file the injection details which is the target structure, how many injections have
+	to be tested, the median of the time range, the variance over the time range and the distribution
+	(by default a Gaussian).
+	Prototype of the input .csv:
+	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
+	Returns a list of struct injection campaigns.
+	*/
+	injectionCampaign_t *injectionCampaigns;
+	int nInjectionCampaigns = readInjectionCampaignList(argv[2], &injectionCampaigns);
+
+	// TODO: extract the following piece of code as a function
+	FILE *tefp = NULL;
+	char teBuffer[LENBUF];
+	unsigned long nTicksGoldenEx = 0;
+	unsigned long nTotalInjections = 0;
+	double estTotTimeMin = 0.0, estTotTimeMax = 0.0;
+
+	tefp = fopen(GOLDEN_FILE_PATH, "r");
+	if (tefp == NULL)
+	{
+		fprintf(stderr, "Couldn't open golden execution results file.\n");
+		return 2;
+	}
+	fgets(teBuffer, LENBUF - 1, tefp);
+	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
+
+	/**
+	 * Print out an time extimation of minimum and maximum execution times for the whole simulation.
+	 * The user must input (Y/n) to confirm execution.
+	 */
+	fprintf(stdout, "\nEstimated execution times:\n");
+
+	for (int i = 0; i < 104; i++)
+		fputc('-', stdout);
+	fprintf(stdout, "\n| %-30s | %8s | %10s | %5s | %5s | %12s | %12s |\n", "Target",
+			"nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
+
+	for (int i = 0; i < nInjectionCampaigns; ++i)
+	{
+		double estTimeMin = (injectionCampaigns[i].nInjections * nTicksGoldenEx) / (1000.0 * 1000.0 * 1000.0);
+		//300% of golden execution time, for each injection in the campaign
+		double estTimeMax = estTimeMin * 3.0;
+
+		for (int i = 0; i < 104; i++)
+			fputc('-', stdout);
+		fprintf(stdout, "\n| %-30s | %8d | %10lu | %5lu | %5s | %10.2f s | %10.2f s |\n", injectionCampaigns[i].targetStructure,
+				injectionCampaigns[i].nInjections,
+				injectionCampaigns[i].medTimeRange,
+				injectionCampaigns[i].variance,
+				injectionCampaigns[i].distr,
+				estTimeMin, estTimeMax);
+
+		estTotTimeMin += estTimeMin;
+		estTotTimeMax += estTimeMax;
+		nTotalInjections += injectionCampaigns[i].nInjections;
+	}
+
+	for (int i = 0; i < 104; i++)
+		fputc('-', stdout);
+	fprintf(stdout, "\n%-30s     %8s   %10s   %5s   %5s   %10.2f s   %10.2f s \n\n",
+			"Total estimated time", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
+
+	fclose(tefp);
+
+	/**
+	 * For each line in the input .csv, generate a injection campaign.
+	 * A for loop launches the iFork() of the forefather. 
+	 * Each father (son of the forefather), launches a thread instance of the FreeRTOS + Injector. 
+	 * The forefather waits for the father: if the return value of the wait is different from 0, the 
+	 * forefather adds 1 to the "crash" entry for that campaign. 
+	 * Each father awaits the 300% golden execution time and then reads the trace, unless the 
+	 * FreeRTOS returned by itself sooner. The father decides which termination has been performed 
+	 * and increases the relative statistic in the memory mapped file for that campaign.
+	 * Completing injection campaigns advances a general completion bar.
+	 */
+	int nCurrentInjection = 0;
+	for (int i = 0; i < nInjectionCampaigns; ++i)
+	{ 
+		// For each injection campaign
+		injectionCampaign_t campaign = injectionCampaigns[i];
+
+		for (int j = 0; j < campaign.nInjections; ++j)
+		{ 
+			// For each injection in a campaign
+			nCurrentInjection++;
+			DEBUG_PRINT("Running injection n. %lu/%lu\n", nCurrentInjection, nTotalInjections);
+
+			target_t *injTarget = getInjectionTarget(targets, campaign.targetStructure);
+			if (injTarget == NULL)
+			{
+				fprintf(stderr, "No target with name %s was found.\n", campaign.targetStructure);
+				return 4;
+			}
+
+			srand((unsigned int)time(NULL));					 //generate random seed
+			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
+			unsigned long offsetBit = rand() % 8;				 //select bit to inject
+			unsigned long injTime;
+
+			switch (injectionCampaigns[i].distr[0])
+			{ //Pick a distribution
+			case 'g':
+			case 'G': // Gaussian
+				// TODO
+				break;
+			case 'u':
+			case 'U':																								 // Uniform
+				injTime = injectionCampaigns[i].medTimeRange;	
+				// TODO: fix me																	 //if delta!=0 select time in interval
+				rand() % 2 ? (injTime += injectionCampaigns[i].variance) : (injTime = abs(injTime - (signed long)campaign.variance)); //choose if before or after selected time
+				break;
+			default:
+				fprintf(stderr, "No distribution with name %s is available.\n", campaign.distr);
+				return 5;
+			}
+
+			freeRTOSInstance instance;
+			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
+			if (pid < 0)
+			{
+				fprintf(stdout, "Couldn't create child process.\n");
+				return 6;
+			}
+			else if (pid > 0)
+			{ // Father process
+				waitFreeRTOSInjection(&instance);
+			}
+		}
+	}
+}
+
 void vApplicationMallocFailedHook(void)
 {
 	/* vApplicationMallocFailedHook() will only be called if
@@ -472,11 +474,11 @@ void vApplicationIdleHook(void)
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
 	if (isIdleHighlander())
 	{
-		if (isGolden) {
-			vPortGenerateSimulatedInterrupt(16);
+		if (isGolden)
+		{
 			writeGoldenFile();
 		}
-		vPortGenerateSimulatedInterrupt( 5 );
+		vPortGenerateSimulatedInterrupt(5);
 		vTaskEndScheduler();
 		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
 	}
@@ -800,4 +802,70 @@ static void writeGoldenFile()
 
 	fprintf(goldenfp, "%lu\n", goldenTime);
 	fclose(goldenfp);
+}
+
+/**
+ * Read from file the injection details which is the target structure, how many injections have 
+ * to be tested, the median of the time range, the variance over the time range and the distribution 
+ * (by default a Gaussian).
+ * 
+ * Prototype of the input .csv:
+ *     char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
+ * 
+ * Returns the number of injection campaigns.
+ */
+static int readInjectionCampaignList(const char *filename, injectionCampaign_t **list)
+{
+	int index = 0;
+	char icBuffer[LENBUF];
+
+	FILE *inputCampaign = fopen(filename, "r");
+	if (inputCampaign == NULL)
+	{
+		fprintf(stderr, "Couldn't open input file input.csv.\n");
+		return 1;
+	}
+
+	*list = (injectionCampaign_t *)malloc(0);
+	while (fgets(icBuffer, LENBUF - 1, inputCampaign) != NULL)
+	{
+		*list = (injectionCampaign_t *)realloc(*list, (index + 1) * sizeof(injectionCampaign_t));
+
+		injectionCampaign_t *campaign = *list + index;
+
+		char targetStructure[256];
+		unsigned long nInjections;
+		unsigned long medTimeRange;
+		unsigned long variance;
+		char distr;
+
+		char *rest;
+		// TODO: add more error handling
+		char *token = strtok_r(icBuffer, ",", &rest);
+		campaign->targetStructure = strdup(token);
+
+		// read the number of injections
+		token = strtok_r(rest, ",", &rest);
+		campaign->nInjections = atol(token);
+
+		// read the injection time
+		token = strtok_r(rest, ",", &rest);
+		campaign->medTimeRange = atol(token);
+
+		// read the injection time variance
+		token = strtok_r(rest, ",", &rest);
+		campaign->variance = atol(token);
+
+		// read the distribution
+		token = strtok_r(rest, ",", &rest);
+		token[1] = '\0';
+		campaign->distr = strdup(token);
+
+		DEBUG_PRINT("Read injection campaign %s\n", campaign->targetStructure);
+
+		++index;
+	}
+	fclose(inputCampaign);
+
+	return index;
 }
