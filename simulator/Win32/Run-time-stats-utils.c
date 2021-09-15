@@ -94,7 +94,7 @@ unsigned long ulReturn;
 		ulReturn = ( unsigned long ) ( ( liCurrentCount.QuadPart - llInitialRunTimeCounterValue ) / llTicksPerHundedthMillisecond );
 	}
 
-	return ulReturn;
+	return ulReturn * 10UL * 1000UL; // convert to nanoseconds
 }
 
 /*-----------------------------------------------------------*/
