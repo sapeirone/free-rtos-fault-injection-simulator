@@ -326,7 +326,7 @@ static void execInjectionCampaign(int argc, char **argv)
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
-		double estTimeMin = (injectionCampaigns[i].nInjections * nanoGoldenEx) / (1000.0 * 1000.0 * 1000.0);
+		double estTimeMin = (1.0 * injectionCampaigns[i].nInjections * nanoGoldenEx) / (1000.0 * 1000.0 * 1000.0);
 		//300% of golden execution time, for each injection in the campaign
 		double estTimeMax = estTimeMin * 3.0;
 
@@ -1009,10 +1009,6 @@ static void printMany(FILE *fp, char c, int number)
 }
 
 static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns){
-	DEBUG_PRINT("Campaign %s: nHang=%d, nError=%d, nDelay=%d, nSilent=%d, nCrash=%d\n",
-					campaign.targetStructure, campaign.res.nHang, campaign.res.nError,
-					campaign.res.nDelay, campaign.res.nSilent, campaign.res.nCrash);
-
 	printMany(stdout, '-', 115);
 	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
 			"Target", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
