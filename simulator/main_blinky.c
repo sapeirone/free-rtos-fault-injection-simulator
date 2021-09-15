@@ -269,6 +269,7 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TIMER;
 	write out a message.  This function is called from the timer/daemon task, so
 	must not block.  Hence the block time is set to 0. */
 	xQueueSend( xQueue, &ulValueToSend, 0U );
+	xTimerDelete(xTimer,  pdMS_TO_TICKS( 100UL ));
 }
 /*-----------------------------------------------------------*/
 

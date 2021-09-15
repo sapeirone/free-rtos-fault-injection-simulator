@@ -7,14 +7,11 @@
 #define UNLIMIT
 #define MAXARRAY 8000
 
-struct myStringStruct {
-  char qstring[128];
-};
+struct myStringStruct array[MAXARRAY];
 
 static int compare(const void *elem1, const void *elem2);
 
 void qsort_bench() {
-  struct myStringStruct array[MAXARRAY];
   FILE *fp;
   int count=0;
 

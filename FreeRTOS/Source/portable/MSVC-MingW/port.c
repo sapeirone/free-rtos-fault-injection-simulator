@@ -48,6 +48,9 @@
 #define portSIMULATED_TIMER_THREAD_PRIORITY		 THREAD_PRIORITY_HIGHEST
 #define portTASK_THREAD_PRIORITY				 THREAD_PRIORITY_ABOVE_NORMAL
 
+/* Additional termination variable */
+int hasToTerminate = 0;
+
 /*
  * Created as a high priority thread, this function uses a timer to simulate
  * a tick interrupt being generated on an embedded target.  In this Windows
@@ -182,6 +185,8 @@ TIMECAPS xTimeCaps;
 		/* Can't proceed if in a critical section as pvInterruptEventMutex won't
 		be available. */
 		WaitForSingleObject( pvInterruptEventMutex, INFINITE );
+
+		if (hasToTerminate) return;
 
 		/* The timer has expired, generate the simulated tick event. */
 		ulPendingInterrupts |= ( 1 << portINTERRUPT_TICK );
@@ -390,10 +395,14 @@ CONTEXT xContext;
 
 	xPortRunning = pdTRUE;
 
-	for(;;)
+	while(!hasToTerminate)
 	{
 		xInsideInterrupt = pdFALSE;
 		WaitForMultipleObjects( sizeof( pvObjectList ) / sizeof( void * ), pvObjectList, TRUE, INFINITE );
+		if(hasToTerminate){
+			ReleaseMutex( pvInterruptEventMutex );
+			break;
+		}
 
 		/* Cannot be in a critical section to get here.  Tasks that exit a
 		critical section will block on a yield mutex to wait for an interrupt to
@@ -566,7 +575,19 @@ uint32_t ulErrorCode;
 
 void vPortEndScheduler( void )
 {
-	exit( 0 );
+	/*
+	ThreadState_t *pxThreadState;
+	pxThreadState = ( ThreadState_t *) *( ( size_t * ) pxCurrentTCB );
+	SuspendThread( pxThreadState->pvThread );*/
+	taskENTER_CRITICAL();
+	hasToTerminate = 1;
+	taskEXIT_CRITICAL();
+	
+	SetEvent( pvInterruptEvent );
+	vTaskDelete( xTaskGetIdleTaskHandle() );
+	
+	return;
+	//exit( 0 );
 }
 /*-----------------------------------------------------------*/
 

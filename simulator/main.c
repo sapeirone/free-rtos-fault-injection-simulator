@@ -51,7 +51,9 @@
 #include "task.h"
 
 #include "simulator.h"
+#include "benchmark/benchmark.h"
 
+extern struct myStringStruct array[MAXARRAY];
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* Global variables */
@@ -755,37 +757,85 @@ static void runSimulator(const thData_t *injectionArgs)
 
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
-	exit(43);
+	if(isGolden)
+		exit(EXIT_SUCCESS);
 
-	/* Check trace and determine the outcome of the simulation */
-	int result = 0, flag = 0;
-	FILE *tefp = NULL;
-	char teBuffer[LENBUF];
+	/* Check trace and determine the outcome of the simulation.
+	 * Crash = 50
+	 * Hang = 48
+	 * Error = 46
+	 * Delay = 44
+	 * Silent = 42
+	 */
+	int result = 50;
 	unsigned long nTicksGoldenEx = 0, delay = 0, execTime = 0;
-	fgets(teBuffer, LENBUF - 1, tefp);
-	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
-
-	for (int i = 0; i < TRACELEN; ++i)
-	{
-		char tmpBuffer[LENBUF];
-		sscanf(loggerTrace[i], "\t\t%s", tmpBuffer);
-		if (strncmp(tmpBuffer, "Idle", 4) != 0)
-		{
-			flag = 1;
-			break;
-		}
-	}
+	nTicksGoldenEx = injectionArgs->timeoutNs / 3;
 
 	execTime = sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
 	delay = abs(nTicksGoldenEx - execTime);
 
-	fclose(tefp);
+	if(traceOutputIsCorrect()){			// Correct Trace output, ISR worked
+		if(executionResultIsCorrect()){	// Execution result is correct
+			if(delay < 5000)			// Silent execution, correct output
+			{ 
+				exit(42);
+			}
+			else						// Delayed execution, correct output
+			{ 
+				exit(44);
+			}
+		}
+		else							// Execution result is not correct
+		{
+			if(delay < 5000)			// Error execution, incorrect output
+			{ 
+				exit(46);
+			}
+			else						// Hang execution, incorrect output
+			{ 
+				exit(48);
+			}
+		}
+	}
+	else 								// Incorrect Trace output, ISR didn't work
+	{
+		exit(50);
+	}
 
-	/* TODO: Working trace analyzer */
+	/* This should never be executed */
+	fprintf(stdout, "BIG DANGER!\nSomehow, the execution of the RTOS produced an unexpected output.\n");
+	exit(EXIT_FAILURE);
+}
 
-	/* Open the memory mapped file and increase the relative counter */
+int traceOutputIsCorrect(){
+	char tmpBuffer[4][LENBUF];
+	sscanf(loggerTrace[TRACELEN-2], "\t%s\t%s", tmpBuffer[0], tmpBuffer[1]);
+	sscanf(loggerTrace[TRACELEN-1], "\t%s\t%s", tmpBuffer[2], tmpBuffer[3]);
+	return (strncmp(tmpBuffer[0], "[IN]", 4) == 0 && strncmp(tmpBuffer[1], "IDLE", 4) == 0 &&
+	   strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
+}
 
-	exit(42);
+int executionResultIsCorrect(){
+	int result = 1;
+	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
+	if (goldenfp == NULL)
+	{
+		fprintf(stdout, "Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
+		exit(EXIT_FAILURE);
+	}
+
+	char buffer[LENBUF];
+	fscanf(goldenfp, "%s\n", buffer); // Ingore first line, the goldenExecutionTime
+	for(int i = 0; i < MAXARRAY; i++){
+		fscanf(goldenfp, "%s\n", buffer);
+		if(strcmp(buffer, array[i].qstring) != 0){
+			result = 0;
+			break;
+		}
+  	}
+	fclose(goldenfp);
+
+	return result;
 }
 
 static void writeGoldenFile()
@@ -801,6 +851,9 @@ static void writeGoldenFile()
 	}
 
 	fprintf(goldenfp, "%lu\n", goldenTime);
+	for(int i = 0; i < MAXARRAY; i++){
+      fprintf(stdout, "%s\n", i, array[i].qstring);
+  	}
 	fclose(goldenfp);
 }
 
