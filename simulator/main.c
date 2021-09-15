@@ -863,6 +863,10 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	*list = (injectionCampaign_t *)malloc(0);
 	while (fgets(icBuffer, LENBUF - 1, inputCampaign) != NULL)
 	{
+		if (icBuffer[0] == '#') {
+			continue;
+		}
+
 		*list = (injectionCampaign_t *)realloc(*list, (index + 1) * sizeof(injectionCampaign_t));
 
 		injectionCampaign_t *campaign = *list + index;
