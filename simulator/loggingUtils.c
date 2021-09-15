@@ -7,7 +7,6 @@
 #pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
 
 signed char loggerTrace[TRACELEN][LENBUF];
-int index = 0;
 
 void loggingFunction(int logCause){
     
@@ -48,6 +47,8 @@ void loggingFunction(int logCause){
 }
 
 void writeToLoggerTrace(signed char * strToWrite){
+    static int index = 0;
+
     if(index < TRACELEN - 1){
         strcpy(loggerTrace[index], strToWrite);
         ++index;

@@ -7,6 +7,24 @@
 #ifndef INJECTOR_H
 #define INJECTOR_H
 
+#if POSIX
+#define strtok_s strtok_r
+#endif
+
+typedef struct injectionResults
+{
+	int nCrash, nHang, nSilent, nDelay, nError;
+} injectionResults_t;
+
+typedef struct injectionCampaign
+{
+	char *targetStructure;
+	int nInjections;
+	unsigned long medTimeRange, variance;
+	injectionResults_t res;
+	char distribution;
+} injectionCampaign_t;
+
 #define INJECTOR_ENABLED 1
 
 #define TYPE_STRUCT_VALUE 1

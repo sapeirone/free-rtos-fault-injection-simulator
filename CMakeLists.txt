@@ -7,6 +7,9 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 if (WIN32)
     # probably useless:
     set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "" FORCE)
+    add_definitions(-DWIN32)
+else()
+    add_definitions(-DPOSIX)
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/build)

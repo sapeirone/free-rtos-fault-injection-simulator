@@ -1,2 +1,3 @@
-uxTopReadyPriority,10,1000000,0,u
-xNumOfOverflows,10,1000000,0,u
+# use '#' for comments
+uxTopReadyPriority,100,1000000,5000,u
+xNumOfOverflows,10,1000000,5000,u

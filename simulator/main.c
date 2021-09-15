@@ -73,13 +73,6 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
 extern void main_blinky(void);
 
 /*
- * Only the comprehensive demo uses application hook (callback) functions.  See
- * http://www.freertos.org/a00016.html for more information.
- */
-void vFullDemoTickHookFunction(void);
-void vFullDemoIdleFunction(void);
-
-/*
  * This demo uses heap_5.c, so start by defining some heap regions.  It is not
  * necessary for this demo to use heap_5, as it could define one large heap
  * region.  Heap_5 is only used for test and example purposes.  See
@@ -98,12 +91,6 @@ void vApplicationTickHook(void);
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize);
 
-/*
- * Writes trace data to a disk file when the trace recording is stopped.
- * This function will simply overwrite any trace files that already exist.
- */
-//static void prvSaveTraceFile(void);
-
 /*-----------------------------------------------------------*/
 
 /* When configSUPPORT_STATIC_ALLOCATION is set to 1 the application writer can
@@ -115,19 +102,6 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 
 /* Notes if the trace is running or not. */
 static BaseType_t xTraceRunning = pdTRUE;
-
-typedef struct injectionResults
-{
-	int nCrash, nHang, nSilent, nDelay, nNoError;
-} injectionResults_t;
-
-typedef struct injectionCampaign
-{
-	char *targetStructure, *distr;
-	int nInjections;
-	unsigned long medTimeRange, variance;
-	injectionResults_t res;
-} injectionCampaign_t;
 
 static void printApplicationArguments(int argc, char **argv);
 
@@ -143,9 +117,11 @@ static void execCmdRun(int argc, char **argv);
 static void execCmdGolden(int argc, char **argv);
 static void execInjectionCampaign(int argc, char **argv);
 
+static int readGoldenExecutionTime(unsigned long *value);
 static int readInjectionCampaignList(const char *filename, injectionCampaign_t **campaignList);
 
 static void printProgressBar(double percentage);
+static void printMany(FILE *fp, char c, int number);
 
 /**
  * List of injection targets for the current instance of the 
@@ -158,13 +134,17 @@ static target_t *targets;
 
 int main(int argc, char **argv)
 {
+	setbuf(stdout, 0);
+	setbuf(stderr, 0);
+
 	// print the application arguments for debugging purposes
 	printApplicationArguments(argc, argv);
 
 	if (argc < 2)
 	{
+		// at least one argument is expected
 		ERR_PRINT("Please specify a command argument --(list|run|golden)\n");
-		return 1;
+		return INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE;
 	}
 
 	/**
@@ -181,7 +161,6 @@ int main(int argc, char **argv)
 	}
 	else if (strcmp(argv[1], CMD_RUN) == 0)
 	{
-		// TODO: option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
 		execCmdRun(argc, argv);
 	}
 	else if (strcmp(argv[1], CMD_GOLDEN) == 0)
@@ -190,10 +169,11 @@ int main(int argc, char **argv)
 	}
 	else if (strcmp(argv[1], CMD_CAMPAIGN) == 0)
 	{
+		// TODO: option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
 		execInjectionCampaign(argc, argv);
 	}
 
-	return 0;
+	return SUCCESSFUL_EXECUTION_EXIT_CODE;
 }
 /*-----------------------------------------------------------*/
 
@@ -236,7 +216,7 @@ static void execCmdRun(int argc, char **argv)
 	if (!golden)
 	{
 		ERR_PRINT("%s not found\n", GOLDEN_FILE_PATH);
-		exit(GENERIC_ERROR_CODE);
+		exit(GENERIC_ERROR_EXIT_CODE);
 	}
 
 	unsigned long goldenExecTime;
@@ -245,7 +225,7 @@ static void execCmdRun(int argc, char **argv)
 		ERR_PRINT("Cannot read the golden execution time\n");
 
 		fclose(golden);
-		exit(GENERIC_ERROR_CODE);
+		exit(GENERIC_ERROR_EXIT_CODE);
 	}
 	DEBUG_PRINT("Execution timeout is %lu\n", goldenExecTime);
 
@@ -261,7 +241,7 @@ static void execCmdRun(int argc, char **argv)
 		ERR_PRINT("Cannot find the injection target\n");
 
 		fclose(golden);
-		exit(GENERIC_ERROR_CODE);
+		exit(GENERIC_ERROR_EXIT_CODE);
 	}
 
 	// create a wrapper for the injection parameters
@@ -283,56 +263,62 @@ static void execCmdGolden(int argc, char **argv)
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
+	// run the simulator without specifying an injection target
 	runSimulator(NULL);
 }
 
+/**
+ * Execute the --campaign command.
+ * 
+ * Expected parameters:
+ * ./sim --campaign /path/to/input/file.csv [-y]
+ */
 static void execInjectionCampaign(int argc, char **argv)
 {
-	if (argc != 3)
+	if (argc != 3 && argc != 4)
 	{
 		ERR_PRINT("Invalid number of arguments for %s.\n", CMD_CAMPAIGN);
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
 	const char *input = argv[2];
+	char choice = (argc == 4 && strncmp(argv[3], "-y", 2) == 0) ? 'y' : '0';
 
-	/*
-	Read from file the injection details which is the target structure, how many injections have
-	to be tested, the median of the time range, the variance over the time range and the distribution
-	(by default a Gaussian).
-	Prototype of the input .csv:
-	char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
-	Returns a list of struct injection campaigns.
+	/**
+	 * Read from file the injection details which is the target structure, 
+	 * how many injections have to be tested, the median of the time range, 
+	 * the variance over the time range and the distribution (by default a 
+	 * uniform distribution).
+	 * 
+	 * Prototype of the input .csv:
+	 *   char * targetStructure, int nInjections, double medTimeRange, double variance, char * distr
+	 * 
+	 * Returns a list of struct injection campaigns.
 	*/
 	injectionCampaign_t *injectionCampaigns;
 	int nInjectionCampaigns = readInjectionCampaignList(argv[2], &injectionCampaigns);
 
-	// TODO: extract the following piece of code as a function
-	FILE *tefp = NULL;
-	char teBuffer[LENBUF];
-	unsigned long nanoGoldenEx = 0;
 	unsigned long nTotalInjections = 0;
 	double estTotTimeMin = 0.0, estTotTimeMax = 0.0;
 
-	tefp = fopen(GOLDEN_FILE_PATH, "r");
-	if (tefp == NULL)
+	unsigned long nanoGoldenEx = 0;
+	if (readGoldenExecutionTime(&nanoGoldenEx) != 0)
 	{
 		ERR_PRINT("Couldn't open golden execution results file.\n");
-		return 2;
+		exit(GENERIC_ERROR_EXIT_CODE);
 	}
-	fgets(teBuffer, LENBUF - 1, tefp);
-	sscanf(teBuffer, "%lu", &nanoGoldenEx);
 
 	/**
-	 * Print out an time extimation of minimum and maximum execution times for the whole simulation.
+	 * Print out an time extimation of minimum and maximum execution 
+	 * times for the whole simulation.
+	 * 
 	 * The user must input (Y/n) to confirm execution.
 	 */
 	fprintf(stdout, "\nEstimated execution times:\n");
 
-	for (int i = 0; i < 104; i++)
-		fputc('-', stdout);
-	fprintf(stdout, "\n| %-30s | %8s | %10s | %5s | %5s | %12s | %12s |\n", "Target",
-			"nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
+	printMany(stdout, '-', 104);
+	fprintf(stdout, "\n| %-30s | %8s | %10s | %5s | %5s | %12s | %12s |\n",
+			"Target", "nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -340,13 +326,13 @@ static void execInjectionCampaign(int argc, char **argv)
 		//300% of golden execution time, for each injection in the campaign
 		double estTimeMax = estTimeMin * 3.0;
 
-		for (int i = 0; i < 104; i++)
-			fputc('-', stdout);
-		fprintf(stdout, "\n| %-30s | %8d | %10lu | %5lu | %5s | %10.2f s | %10.2f s |\n", injectionCampaigns[i].targetStructure,
+		printMany(stdout, '-', 104);
+		fprintf(stdout, "\n| %-30s | %8d | %10lu | %5lu | %5c | %10.2f s | %10.2f s |\n",
+				injectionCampaigns[i].targetStructure,
 				injectionCampaigns[i].nInjections,
 				injectionCampaigns[i].medTimeRange,
 				injectionCampaigns[i].variance,
-				injectionCampaigns[i].distr,
+				injectionCampaigns[i].distribution,
 				estTimeMin, estTimeMax);
 
 		estTotTimeMin += estTimeMin;
@@ -354,18 +340,18 @@ static void execInjectionCampaign(int argc, char **argv)
 		nTotalInjections += injectionCampaigns[i].nInjections;
 	}
 
-	fclose(tefp);
-
-	for (int i = 0; i < 104; i++)
-		fputc('-', stdout);
+	printMany(stdout, '-', 104);
 	fprintf(stdout, "\n%-30s     %8s   %10s   %5s   %5s   %10.2f s   %10.2f s \n\n",
 			"Total estimated time", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
 
-	char choice = 0;
-	while (choice != 'y' && choice != 'n') {
+	// require user confirmation
+	while (choice != 'y' && choice != 'n')
+	{
 		fprintf(stdout, "Continue? (y|n): ");
 		fscanf(stdin, "%c", &choice);
-		if (choice == 'n') {
+		if (choice == 'n')
+		{
+			fprintf(stdout, "Aborting...");
 			return;
 		}
 	}
@@ -381,17 +367,21 @@ static void execInjectionCampaign(int argc, char **argv)
 	 * and increases the relative statistic in the memory mapped file for that campaign.
 	 * Completing injection campaigns advances a general completion bar.
 	 */
+
+	// initialize the random seed
+	srand((unsigned int)time(NULL));
 	int nCurrentInjection = 0;
+
 	for (int i = 0; i < nInjectionCampaigns; ++i)
-	{ 
+	{
 		// For each injection campaign
 		injectionCampaign_t campaign = injectionCampaigns[i];
 
 		for (int j = 0; j < campaign.nInjections; ++j)
-		{ 
+		{
 			// For each injection in a campaign
 			nCurrentInjection++;
-			DEBUG_PRINT("Running injection n. %lu/%lu\n", nCurrentInjection, nTotalInjections);
+			DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
 
 			/* Progress bar */
 			printProgressBar(((double) nCurrentInjection / nTotalInjections));
@@ -400,43 +390,73 @@ static void execInjectionCampaign(int argc, char **argv)
 			if (injTarget == NULL)
 			{
 				ERR_PRINT("No target with name %s was found.\n", campaign.targetStructure);
-				return 4;
+				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
-			srand((unsigned int)time(NULL));					 //generate random seed
+			// verify the median injection time does not exceed the
+			// execution time of the golden simulation
+			if (campaign.medTimeRange > nanoGoldenEx)
+			{
+				fprintf(stderr, "Invalid injection for target %s\n", campaign.targetStructure);
+				exit(GENERIC_ERROR_EXIT_CODE);
+			}
+
 			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
 
-			switch (injectionCampaigns[i].distr[0])
-			{ //Pick a distribution
+			// pick a distribution
+			switch (campaign.distribution)
+			{
 			case 'g':
-			case 'G': // Gaussian
 				// TODO
 				break;
 			case 'u':
-			case 'U':																								 // Uniform
-				injTime = injectionCampaigns[i].medTimeRange;	
-				// TODO: fix me																	 //if delta!=0 select time in interval
-				rand() % 2 ? (injTime += injectionCampaigns[i].variance) : (injTime = abs(injTime - (signed long)campaign.variance)); //choose if before or after selected time
-				break;
 			default:
-				ERR_PRINT("No distribution with name %s is available.\n", campaign.distr);
-				return 5;
+				injTime = campaign.medTimeRange;
+
+				// compute the width of the injection time range
+				int lowerWidth = min(campaign.medTimeRange, campaign.variance);
+				int upperWidth = min(campaign.variance, nanoGoldenEx - campaign.medTimeRange);
+				int range = max(1, lowerWidth + upperWidth);
+				injTime = (rand() % range) - (range / 2) + (signed)campaign.medTimeRange;
 			}
 
 			freeRTOSInstance instance;
-			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
-			if (pid < 0)
+			int ret = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
+			if (ret < 0)
 			{
 				ERR_PRINT("Couldn't create child process.\n");
-				return 6;
+				exit(GENERIC_ERROR_EXIT_CODE);
 			}
-			else if (pid > 0)
-			{ // Father process
-				waitFreeRTOSInjection(&instance);
+
+			// Father process
+			int exitCode = waitFreeRTOSInjection(&instance);
+			DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %d...\n\n", nCurrentInjection, nTotalInjections, exitCode);
+
+			switch (exitCode)
+			{
+			case EXECUTION_RESULT_HANG_EXIT_CODE:
+				campaign.res.nHang++;
+				break;
+			case EXECUTION_RESULT_ERROR_EXIT_CODE:
+				campaign.res.nError++;
+				break;
+			case EXECUTION_RESULT_DELAY_EXIT_CODE:
+				campaign.res.nDelay++;
+				break;
+			case EXECUTION_RESULT_SILENT_EXIT_CODE:
+				campaign.res.nSilent++;
+				break;
+			case EXECUTION_RESULT_CRASH_EXIT_CODE:
+			default:
+				campaign.res.nCrash++;
 			}
 		}
+
+		DEBUG_PRINT("Campaign %s: nHang=%d, nError=%d, nDelay=%d, nSilent=%d, nCrash=%d\n",
+					campaign.targetStructure, campaign.res.nHang, campaign.res.nError,
+					campaign.res.nDelay, campaign.res.nSilent, campaign.res.nCrash);
 	}
 }
 
@@ -551,19 +571,7 @@ void vAssertCalled(unsigned long ulLine, const char *const pcFileName)
 
 	taskENTER_CRITICAL();
 	{
-		/* Stop the trace recording. */
-		if (xPrinted == pdFALSE)
-		{
-			xPrinted = pdTRUE;
-			if (xTraceRunning == pdTRUE)
-			{
-				// vTraceStop(); // TODO: check this
-				// prvSaveTraceFile();
-			}
-		}
-
-		/* Cause debugger break point if being debugged. */
-		// __debugbreak();
+		//__debugbreak();
 
 		/* You can step out of this function to debug the assertion by using
 		the debugger to set ulSetToNonZeroInDebuggerToContinue to a non-zero
@@ -576,25 +584,6 @@ void vAssertCalled(unsigned long ulLine, const char *const pcFileName)
 	}
 	taskEXIT_CRITICAL();
 }
-/*-----------------------------------------------------------*/
-
-// static void prvSaveTraceFile(void)
-// {
-// 	FILE *pxOutputFile;
-
-// 	fopen_s(&pxOutputFile, "Trace.dump", "wb");
-
-// 	if (pxOutputFile != NULL)
-// 	{
-// 		fwrite(RecorderDataPtr, sizeof(RecorderDataType), 1, pxOutputFile);
-// 		fclose(pxOutputFile);
-// 		printf("\r\nTrace output saved to Trace.dump\r\n");
-// 	}
-// 	else
-// 	{
-// 		printf("\r\nFailed to create trace dump file\r\n");
-// 	}
-// }
 /*-----------------------------------------------------------*/
 
 static void prvInitialiseHeap(void)
@@ -771,15 +760,12 @@ static void runSimulator(const thData_t *injectionArgs)
 
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
-	if(isGolden)
+	if (isGolden)
 		exit(EXIT_SUCCESS);
 
-	/* Check trace and determine the outcome of the simulation.
-	 * Crash = 50
-	 * Hang = 48
-	 * Error = 46
-	 * Delay = 44
-	 * Silent = 42
+	/**
+	 * Check trace and determine the outcome of the simulation.
+	 * Refer to simulator.h for the exit codes values.
 	 */
 	int result = 50;
 	unsigned long nanoGoldenEx = 0, delay = 0, execTime = 0;
@@ -788,32 +774,34 @@ static void runSimulator(const thData_t *injectionArgs)
 	execTime = sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
 	delay = abs(nanoGoldenEx - execTime);
 
-	if(traceOutputIsCorrect()){			// Correct Trace output, ISR worked
-		if(executionResultIsCorrect()){	// Execution result is correct
-			if(delay < 5000)			// Silent execution, correct output
-			{ 
-				exit(42);
+	if (traceOutputIsCorrect())
+	{ // Correct Trace output, ISR worked
+		if (executionResultIsCorrect())
+		{					  // Execution result is correct
+			if (delay < 5000) // Silent execution, correct output
+			{
+				exit(EXECUTION_RESULT_SILENT_EXIT_CODE);
 			}
-			else						// Delayed execution, correct output
-			{ 
-				exit(44);
+			else // Delayed execution, correct output
+			{
+				exit(EXECUTION_RESULT_DELAY_EXIT_CODE);
 			}
 		}
-		else							// Execution result is not correct
+		else // Execution result is not correct
 		{
-			if(delay < 5000)			// Error execution, incorrect output
-			{ 
-				exit(46);
+			if (delay < 5000) // Error execution, incorrect output
+			{
+				exit(EXECUTION_RESULT_ERROR_EXIT_CODE);
 			}
-			else						// Hang execution, incorrect output
-			{ 
-				exit(48);
+			else // Hang execution, incorrect output
+			{
+				exit(EXECUTION_RESULT_HANG_EXIT_CODE);
 			}
 		}
 	}
-	else 								// Incorrect Trace output, ISR didn't work
+	else // Incorrect Trace output, ISR didn't work
 	{
-		exit(50);
+		exit(EXECUTION_RESULT_CRASH_EXIT_CODE);
 	}
 
 	/* This should never be executed */
@@ -821,15 +809,17 @@ static void runSimulator(const thData_t *injectionArgs)
 	exit(EXIT_FAILURE);
 }
 
-int traceOutputIsCorrect(){
+int traceOutputIsCorrect()
+{
 	char tmpBuffer[4][LENBUF];
-	sscanf(loggerTrace[TRACELEN-2], "\t%s\t%s", tmpBuffer[0], tmpBuffer[1]);
-	sscanf(loggerTrace[TRACELEN-1], "\t%s\t%s", tmpBuffer[2], tmpBuffer[3]);
+	sscanf(loggerTrace[TRACELEN - 2], "\t%s\t%s", tmpBuffer[0], tmpBuffer[1]);
+	sscanf(loggerTrace[TRACELEN - 1], "\t%s\t%s", tmpBuffer[2], tmpBuffer[3]);
 	return (strncmp(tmpBuffer[0], "[IN]", 4) == 0 && strncmp(tmpBuffer[1], "IDLE", 4) == 0 &&
-	   strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
+			strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
 }
 
-int executionResultIsCorrect(){
+int executionResultIsCorrect()
+{
 	int result = 1;
 	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
 	if (goldenfp == NULL)
@@ -840,13 +830,15 @@ int executionResultIsCorrect(){
 
 	char buffer[LENBUF];
 	fscanf(goldenfp, "%s\n", buffer); // Ingore first line, the goldenExecutionTime
-	for(int i = 0; i < MAXARRAY; i++){
+	for (int i = 0; i < MAXARRAY; i++)
+	{
 		fscanf(goldenfp, "%s\n", buffer);
-		if(strcmp(buffer, array[i].qstring) != 0){
+		if (strcmp(buffer, array[i].qstring) != 0)
+		{
 			result = 0;
 			break;
 		}
-  	}
+	}
 	fclose(goldenfp);
 
 	return result;
@@ -865,9 +857,10 @@ static void writeGoldenFile()
 	}
 
 	fprintf(goldenfp, "%lu\n", goldenTime);
-	for(int i = 0; i < MAXARRAY; i++){
-      fprintf(stdout, "%s\n", i, array[i].qstring);
-  	}
+	for (int i = 0; i < MAXARRAY; i++)
+	{
+		fprintf(stdout, "%s\n", i, array[i].qstring);
+	}
 	fclose(goldenfp);
 }
 
@@ -896,6 +889,11 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	*list = (injectionCampaign_t *)malloc(0);
 	while (fgets(icBuffer, LENBUF - 1, inputCampaign) != NULL)
 	{
+		if (icBuffer[0] == '#')
+		{
+			continue;
+		}
+
 		*list = (injectionCampaign_t *)realloc(*list, (index + 1) * sizeof(injectionCampaign_t));
 
 		injectionCampaign_t *campaign = *list + index;
@@ -924,9 +922,8 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 		campaign->variance = atol(token);
 
 		// read the distribution
-		token = strtok_s(rest, ",", &rest);
-		token[1] = '\0';
-		campaign->distr = strdup(token);
+		token = strtok_r(rest, ",", &rest);
+		campaign->distribution = token[0];
 
 		DEBUG_PRINT("Read injection campaign %s\n", campaign->targetStructure);
 
@@ -974,4 +971,47 @@ static void printProgressBar(double percentage){
 	#if defined(DEBUG) || defined(OUTPUT_VERBOSE)
 	fprintf(stdout, "\n");
 	#endif
+}
+
+/**
+ * Read the golden execution time from the golden file and store
+ * it in the region pointed by the value parameter.
+ * 
+ * Returns:
+ *  0 if the value was read correctly,
+ *  > 0 otherwise.
+ */
+static int readGoldenExecutionTime(unsigned long *value)
+{
+	FILE *fp = fopen(GOLDEN_FILE_PATH, "r");
+
+	if (fp == NULL)
+	{
+		return 1;
+	}
+
+	int nRead = fscanf(fp, "%lu", value);
+
+	fclose(fp);
+
+	// check the number of values read
+	if (nRead != 1)
+	{
+		// error during the reading operation
+		return 2;
+	}
+
+	// ok
+	return 0;
+}
+
+static void printMany(FILE *fp, char c, int number)
+{
+	if (fp)
+	{
+		for (int i = 0; i < number; i++)
+		{
+			fputc(c, fp);
+		}
+	}
 }
