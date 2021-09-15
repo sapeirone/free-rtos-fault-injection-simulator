@@ -1028,12 +1028,12 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 
 	printMany(stdout, '-', 115);
 	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
-			"Target", "# Injections", "Silent \%", "Delay \%", "Error \%", "Hang \%", "Crash \%");
+			"Target", "# Injections", "Silent %%", "Delay %%", "Error %%", "Hang %%", "Crash %%");
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
 		printMany(stdout, '-', 115);
-		fprintf(stdout, "\n| %-30s | %8d | %3.2f%% | %3.2f%% | %3.2f%% | %3.2f%% | %3.2f%% |\n",
+		fprintf(stdout, "\n| %-30s | %13d | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% |\n",
 				injectionCampaigns[i].targetStructure,
 				injectionCampaigns[i].nInjections,
 				(100.0 * injectionCampaigns[i].res.nSilent) / injectionCampaigns[i].nInjections,
