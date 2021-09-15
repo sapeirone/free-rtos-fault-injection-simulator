@@ -308,7 +308,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	// TODO: extract the following piece of code as a function
 	FILE *tefp = NULL;
 	char teBuffer[LENBUF];
-	unsigned long nTicksGoldenEx = 0;
+	unsigned long nanoGoldenEx = 0;
 	unsigned long nTotalInjections = 0;
 	double estTotTimeMin = 0.0, estTotTimeMax = 0.0;
 
@@ -319,7 +319,7 @@ static void execInjectionCampaign(int argc, char **argv)
 		return 2;
 	}
 	fgets(teBuffer, LENBUF - 1, tefp);
-	sscanf(teBuffer, "%lu", &nTicksGoldenEx);
+	sscanf(teBuffer, "%lu", &nanoGoldenEx);
 
 	/**
 	 * Print out an time extimation of minimum and maximum execution times for the whole simulation.
@@ -334,7 +334,7 @@ static void execInjectionCampaign(int argc, char **argv)
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
-		double estTimeMin = (injectionCampaigns[i].nInjections * nTicksGoldenEx) / (1000.0 * 1000.0 * 1000.0);
+		double estTimeMin = (injectionCampaigns[i].nInjections * nanoGoldenEx) / (1000.0 * 1000.0 * 1000.0);
 		//300% of golden execution time, for each injection in the campaign
 		double estTimeMax = estTimeMin * 3.0;
 
@@ -768,11 +768,11 @@ static void runSimulator(const thData_t *injectionArgs)
 	 * Silent = 42
 	 */
 	int result = 50;
-	unsigned long nTicksGoldenEx = 0, delay = 0, execTime = 0;
-	nTicksGoldenEx = injectionArgs->timeoutNs / 3;
+	unsigned long nanoGoldenEx = 0, delay = 0, execTime = 0;
+	nanoGoldenEx = injectionArgs->timeoutNs / 3;
 
 	execTime = sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
-	delay = abs(nTicksGoldenEx - execTime);
+	delay = abs(nanoGoldenEx - execTime);
 
 	if(traceOutputIsCorrect()){			// Correct Trace output, ISR worked
 		if(executionResultIsCorrect()){	// Execution result is correct
