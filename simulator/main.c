@@ -125,6 +125,7 @@ static int executionResultIsCorrect();
 
 static void printProgressBar(double percentage);
 static void printMany(FILE *fp, char c, int number);
+static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns);
 
 /**
  * List of injection targets for the current instance of the 
@@ -379,6 +380,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	{
 		// For each injection campaign
 		injectionCampaign_t campaign = injectionCampaigns[i];
+		memset(&campaign.res, 0, sizeof(campaign.res));
 
 		for (int j = 0; j < campaign.nInjections; ++j)
 		{
@@ -456,11 +458,9 @@ static void execInjectionCampaign(int argc, char **argv)
 				campaign.res.nCrash++;
 			}
 		}
-
-		DEBUG_PRINT("Campaign %s: nHang=%d, nError=%d, nDelay=%d, nSilent=%d, nCrash=%d\n",
-					campaign.targetStructure, campaign.res.nHang, campaign.res.nError,
-					campaign.res.nDelay, campaign.res.nSilent, campaign.res.nCrash);
 	}
+
+	printStatistics(injectionCampaigns, nInjectionCampaigns);
 }
 
 void vApplicationMallocFailedHook(void)
@@ -1019,4 +1019,28 @@ static void printMany(FILE *fp, char c, int number)
 			fputc(c, fp);
 		}
 	}
+}
+
+static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns){
+	DEBUG_PRINT("Campaign %s: nHang=%d, nError=%d, nDelay=%d, nSilent=%d, nCrash=%d\n",
+					campaign.targetStructure, campaign.res.nHang, campaign.res.nError,
+					campaign.res.nDelay, campaign.res.nSilent, campaign.res.nCrash);
+
+	printMany(stdout, '-', 115);
+	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
+			"Target", "# Injections", "Silent \%", "Delay \%", "Error \%", "Hang \%", "Crash \%");
+
+	for (int i = 0; i < nInjectionCampaigns; ++i)
+	{
+		printMany(stdout, '-', 115);
+		fprintf(stdout, "\n| %-30s | %8d | %3.2f%% | %3.2f%% | %3.2f%% | %3.2f%% | %3.2f%% |\n",
+				injectionCampaigns[i].targetStructure,
+				injectionCampaigns[i].nInjections,
+				(double) injectionCampaigns[i].res.nSilent / injectionCampaigns[i].nInjections,
+				(double) injectionCampaigns[i].res.nDelay / injectionCampaigns[i].nInjections,
+				(double) injectionCampaigns[i].res.nError / injectionCampaigns[i].nInjections,
+				(double) injectionCampaigns[i].res.nHang / injectionCampaigns[i].nInjections,
+				(double) injectionCampaigns[i].res.nCrash / injectionCampaigns[i].nInjections);
+	}
+	printMany(stdout, '-', 115);
 }
