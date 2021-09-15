@@ -352,12 +352,21 @@ static void execInjectionCampaign(int argc, char **argv)
 		nTotalInjections += injectionCampaigns[i].nInjections;
 	}
 
+	fclose(tefp);
+
 	for (int i = 0; i < 104; i++)
 		fputc('-', stdout);
 	fprintf(stdout, "\n%-30s     %8s   %10s   %5s   %5s   %10.2f s   %10.2f s \n\n",
 			"Total estimated time", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
 
-	fclose(tefp);
+	char choice = 0;
+	while (choice != 'y' && choice != 'n') {
+		fprintf(stdout, "Continue? (y|n): ");
+		fscanf(stdin, "%c", &choice);
+		if (choice == 'n') {
+			return;
+		}
+	}
 
 	/**
 	 * For each line in the input .csv, generate a injection campaign.
