@@ -379,10 +379,10 @@ static void execInjectionCampaign(int argc, char **argv)
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
 		// For each injection campaign
-		injectionCampaign_t campaign = injectionCampaigns[i];
-		memset(&campaign.res, 0, sizeof(campaign.res));
+		injectionCampaign_t *campaign = injectionCampaigns + i;
+		memset(&campaign->res, 0, sizeof(injectionResults_t));
 
-		for (int j = 0; j < campaign.nInjections; ++j)
+		for (int j = 0; j < campaign->nInjections; ++j)
 		{
 			// For each injection in a campaign
 			nCurrentInjection++;
@@ -391,18 +391,18 @@ static void execInjectionCampaign(int argc, char **argv)
 			/* Progress bar */
 			printProgressBar(((double) nCurrentInjection / nTotalInjections));
 
-			target_t *injTarget = getInjectionTarget(targets, campaign.targetStructure);
+			target_t *injTarget = getInjectionTarget(targets, campaign->targetStructure);
 			if (injTarget == NULL)
 			{
-				ERR_PRINT("No target with name %s was found.\n", campaign.targetStructure);
+				ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
 			// verify the median injection time does not exceed the
 			// execution time of the golden simulation
-			if (campaign.medTimeRange > nanoGoldenEx)
+			if (campaign->medTimeRange > nanoGoldenEx)
 			{
-				fprintf(stderr, "Invalid injection for target %s\n", campaign.targetStructure);
+				fprintf(stderr, "Invalid injection for target %s\n", campaign->targetStructure);
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
@@ -411,20 +411,20 @@ static void execInjectionCampaign(int argc, char **argv)
 			unsigned long injTime;
 
 			// pick a distribution
-			switch (campaign.distribution)
+			switch (campaign->distribution)
 			{
 			case 'g':
 				// TODO
 				break;
 			case 'u':
 			default:
-				injTime = campaign.medTimeRange;
+				injTime = campaign->medTimeRange;
 
 				// compute the width of the injection time range
-				int lowerWidth = min(campaign.medTimeRange, campaign.variance);
-				int upperWidth = min(campaign.variance, nanoGoldenEx - campaign.medTimeRange);
+				int lowerWidth = min(campaign->medTimeRange, campaign->variance);
+				int upperWidth = min(campaign->variance, nanoGoldenEx - campaign->medTimeRange);
 				int range = max(1, lowerWidth + upperWidth);
-				injTime = (rand() % range) - (range / 2) + (signed)campaign.medTimeRange;
+				injTime = (rand() % range) - (range / 2) + (signed)campaign->medTimeRange;
 			}
 
 			freeRTOSInstance instance;
@@ -442,20 +442,20 @@ static void execInjectionCampaign(int argc, char **argv)
 			switch (exitCode)
 			{
 			case EXECUTION_RESULT_HANG_EXIT_CODE:
-				campaign.res.nHang++;
+				campaign->res.nHang++;
 				break;
 			case EXECUTION_RESULT_ERROR_EXIT_CODE:
-				campaign.res.nError++;
+				campaign->res.nError++;
 				break;
 			case EXECUTION_RESULT_DELAY_EXIT_CODE:
-				campaign.res.nDelay++;
+				campaign->res.nDelay++;
 				break;
 			case EXECUTION_RESULT_SILENT_EXIT_CODE:
-				campaign.res.nSilent++;
+				campaign->res.nSilent++;
 				break;
 			case EXECUTION_RESULT_CRASH_EXIT_CODE:
 			default:
-				campaign.res.nCrash++;
+				campaign->res.nCrash++;
 			}
 		}
 	}
@@ -1036,11 +1036,11 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 		fprintf(stdout, "\n| %-30s | %8d | %3.2f%% | %3.2f%% | %3.2f%% | %3.2f%% | %3.2f%% |\n",
 				injectionCampaigns[i].targetStructure,
 				injectionCampaigns[i].nInjections,
-				(double) injectionCampaigns[i].res.nSilent / injectionCampaigns[i].nInjections,
-				(double) injectionCampaigns[i].res.nDelay / injectionCampaigns[i].nInjections,
-				(double) injectionCampaigns[i].res.nError / injectionCampaigns[i].nInjections,
-				(double) injectionCampaigns[i].res.nHang / injectionCampaigns[i].nInjections,
-				(double) injectionCampaigns[i].res.nCrash / injectionCampaigns[i].nInjections);
+				(100.0 * injectionCampaigns[i].res.nSilent) / injectionCampaigns[i].nInjections,
+				(100.0 * injectionCampaigns[i].res.nDelay) / injectionCampaigns[i].nInjections,
+				(100.0 * injectionCampaigns[i].res.nError) / injectionCampaigns[i].nInjections,
+				(100.0 * injectionCampaigns[i].res.nHang) / injectionCampaigns[i].nInjections,
+				(100.0 * injectionCampaigns[i].res.nCrash) / injectionCampaigns[i].nInjections);
 	}
 	printMany(stdout, '-', 115);
 }
