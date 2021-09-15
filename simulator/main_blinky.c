@@ -103,8 +103,8 @@ extern int isGolden;
 
 /* The rate at which data is sent to the queue.  The times are converted from
 milliseconds to ticks using the pdMS_TO_TICKS() macro. */
-#define mainTASK_SEND_FREQUENCY_MS			pdMS_TO_TICKS( 100UL )
-#define mainTIMER_SEND_FREQUENCY_MS			pdMS_TO_TICKS( 500UL )
+#define mainTASK_SEND_FREQUENCY_MS			pdMS_TO_TICKS( 20UL )
+#define mainTIMER_SEND_FREQUENCY_MS			pdMS_TO_TICKS( 60UL )
 
 /* The number of items the queue can hold at once. */
 #define mainQUEUE_LENGTH					( 2 )
@@ -244,11 +244,9 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TASK;
 		While in the Blocked state this task will not consume any CPU time. */
 		vTaskDelayUntil( &xNextWakeTime, xBlockTime );
 
-		if (isGolden) {
-			static int i = 0;
-			if (i++ > 10)
-				vTaskDelete(NULL);
-		}
+		static int i = 0;
+		if (i++ > 10)
+			vTaskDelete(NULL);
 	}
 }
 /*-----------------------------------------------------------*/
@@ -269,7 +267,12 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TIMER;
 	write out a message.  This function is called from the timer/daemon task, so
 	must not block.  Hence the block time is set to 0. */
 	xQueueSend( xQueue, &ulValueToSend, 0U );
-	xTimerDelete(xTimer,  pdMS_TO_TICKS( 100UL ));
+
+	static int i = 0;
+	if (++i >= 3)
+		xTimerDelete(xTimer,  pdMS_TO_TICKS( 100UL ));
+	else
+		xTimerReset(xTimer, pdMS_TO_TICKS( 10UL ));
 }
 /*-----------------------------------------------------------*/
 
@@ -298,11 +301,9 @@ uint32_t ulReceivedValue;
 		{
 			OUTPUT_PRINT( "Message received from task\r\n" );
 			
-			if (isGolden) {
-				static int j = 0;
-				if (j++ > 1000)
-					vTaskDelete(NULL);
-			}
+			static int j = 0;
+			if (j++ > 10)
+				vTaskDelete(NULL);
 		}
 		else if( ulReceivedValue == mainVALUE_SENT_FROM_TIMER )
 		{
