@@ -814,9 +814,17 @@ static void runSimulator(const thData_t *injectionArgs)
 
 static int traceOutputIsCorrect()
 {
-	char tmpBuffer[4][LENBUF];
-	sscanf(loggerTrace[TRACELEN - 2], "\t%s\t%s", tmpBuffer[0], tmpBuffer[1]);
-	sscanf(loggerTrace[TRACELEN - 1], "\t%s\t%s", tmpBuffer[2], tmpBuffer[3]);
+	char *tmpBuffer[4];
+
+	char *rest;
+	char *token = strtok_s(loggerTrace[TRACELEN - 2], "\t", &rest);
+	tmpBuffer[0] = strtok_s(rest, "\t", &rest);
+	tmpBuffer[1] = strtok_s(rest, "\t", &rest);
+
+	*token = strtok_s(loggerTrace[TRACELEN - 1], "\t", &rest);
+	tmpBuffer[2] = strtok_s(rest, "\t", &rest);
+	tmpBuffer[3] = strtok_s(rest, "\t", &rest);
+
 	return (strncmp(tmpBuffer[0], "[IN]", 4) == 0 && strncmp(tmpBuffer[1], "IDLE", 4) == 0 &&
 			strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
 }
@@ -824,10 +832,10 @@ static int traceOutputIsCorrect()
 static int executionResultIsCorrect()
 {
 	int result = 1;
-	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
+	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "r");
 	if (goldenfp == NULL)
 	{
-		ERR_PRINT("Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
+		ERR_PRINT("Couldn't open %s for reading.\n", GOLDEN_FILE_PATH);
 		exit(EXIT_FAILURE);
 	}
 
