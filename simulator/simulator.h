@@ -60,5 +60,7 @@ int isGolden;
     fprintf(stderr, "[ERR] " format, ##__VA_ARGS__)
 
 // useful macros
+#undef min
 #define min(a, b) ((a < b) ? a : b)
+#undef max
 #define max(a, b) ((a > b) ? a : b)

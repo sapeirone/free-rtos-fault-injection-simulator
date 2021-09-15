@@ -120,6 +120,9 @@ static void execInjectionCampaign(int argc, char **argv);
 static int readGoldenExecutionTime(unsigned long *value);
 static int readInjectionCampaignList(const char *filename, injectionCampaign_t **campaignList);
 
+static int traceOutputIsCorrect();
+static int executionResultIsCorrect();
+
 static void printProgressBar(double percentage);
 static void printMany(FILE *fp, char c, int number);
 
@@ -809,7 +812,7 @@ static void runSimulator(const thData_t *injectionArgs)
 	exit(EXIT_FAILURE);
 }
 
-int traceOutputIsCorrect()
+static int traceOutputIsCorrect()
 {
 	char tmpBuffer[4][LENBUF];
 	sscanf(loggerTrace[TRACELEN - 2], "\t%s\t%s", tmpBuffer[0], tmpBuffer[1]);
@@ -818,7 +821,7 @@ int traceOutputIsCorrect()
 			strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
 }
 
-int executionResultIsCorrect()
+static int executionResultIsCorrect()
 {
 	int result = 1;
 	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
@@ -859,7 +862,7 @@ static void writeGoldenFile()
 	fprintf(goldenfp, "%lu\n", goldenTime);
 	for (int i = 0; i < MAXARRAY; i++)
 	{
-		fprintf(stdout, "%s\n", i, array[i].qstring);
+		fprintf(stdout, "%s\n", array[i].qstring);
 	}
 	fclose(goldenfp);
 }
@@ -898,12 +901,6 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 
 		injectionCampaign_t *campaign = *list + index;
 
-		char targetStructure[256];
-		unsigned long nInjections;
-		unsigned long medTimeRange;
-		unsigned long variance;
-		char distr;
-
 		char *rest;
 		// TODO: add more error handling
 		char *token = strtok_s(icBuffer, ",", &rest);
@@ -922,7 +919,7 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 		campaign->variance = atol(token);
 
 		// read the distribution
-		token = strtok_r(rest, ",", &rest);
+		token = strtok_s(rest, ",", &rest);
 		campaign->distribution = token[0];
 
 		DEBUG_PRINT("Read injection campaign %s\n", campaign->targetStructure);
