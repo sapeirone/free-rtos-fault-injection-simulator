@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "benchmark.h"
+#include "../simulator.h"
 
 #pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
 #define UNLIMIT
@@ -17,7 +18,7 @@ void qsort_bench() {
 
   fp = fopen("simulator/input_data/input_small.dat", "r");
   if(fp == NULL){
-    fprintf(stderr, "Error fopen in qsort_bench\n");
+    ERR_PRINT("Error fopen in qsort_bench\n");
   }
 
   while((count < MAXARRAY) && (fscanf(fp, "%s", &array[count].qstring) == 1)) {
@@ -26,12 +27,12 @@ void qsort_bench() {
 
   fclose(fp);
 
-  fprintf(stdout, "Sorting %d elements.\n", count);
+  OUTPUT_PRINT("Sorting %d elements.\n", count);
   qsort(array, count, sizeof(struct myStringStruct), compare);
   
   for(int i = 0; i < count; i++){
     if((i%1000) == 0 || i == count-1)
-      fprintf(stdout, "array[%d] = %s\n", i, array[i].qstring);
+      OUTPUT_PRINT("array[%d] = %s\n", i, array[i].qstring);
   }
 
   return;

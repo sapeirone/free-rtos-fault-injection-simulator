@@ -1,7 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 #include "loggingUtils.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "simulator.h"
+#pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
 
 signed char loggerTrace[TRACELEN][LENBUF];
 int index = 0;
@@ -54,21 +57,11 @@ void writeToLoggerTrace(signed char * strToWrite){
         }
         strcpy(loggerTrace[index], strToWrite);
     }
-    // Debug
-    /*
-    printf("#####################################################################\n");
-    for(int i = 0; i<TRACELEN; ++i){
-        printf("%d\t", i);
-        printf(loggerTrace[i]);
-        printf("\n");
-    }   */
 }
 
 void printTrace(){
-    printf("#####################################################################\n");
+    OUTPUT_PRINT( "###################################################################\n" ); // Nice
     for(int i = 0; i<TRACELEN; ++i){
-        printf("%d\t", i);
-        printf(loggerTrace[i]);
-        printf("\n");
+        OUTPUT_PRINT( "%d\t%s\n", i, loggerTrace[i] );
     }
 }

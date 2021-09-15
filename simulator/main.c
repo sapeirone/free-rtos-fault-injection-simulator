@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 
 	if (argc < 2)
 	{
-		fprintf(stderr, "Please specify a command argument --(list|run|golden)\n");
+		ERR_PRINT("Please specify a command argument --(list|run|golden)\n");
 		return 1;
 	}
 
@@ -225,7 +225,7 @@ static void execCmdRun(int argc, char **argv)
 {
 	if (argc != 6)
 	{
-		fprintf(stderr, "Invalid number of arguments for %s.\n", CMD_RUN);
+		ERR_PRINT("Invalid number of arguments for %s.\n", CMD_RUN);
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
@@ -233,14 +233,14 @@ static void execCmdRun(int argc, char **argv)
 	FILE *golden = fopen(GOLDEN_FILE_PATH, "r");
 	if (!golden)
 	{
-		fprintf(stderr, "%s not found\n", GOLDEN_FILE_PATH);
+		ERR_PRINT("%s not found\n", GOLDEN_FILE_PATH);
 		exit(GENERIC_ERROR_CODE);
 	}
 
 	unsigned long goldenExecTime;
 	if (fscanf(golden, "%lu", &goldenExecTime) != 1)
 	{
-		fprintf(stderr, "Cannot read the golden execution time\n");
+		ERR_PRINT("Cannot read the golden execution time\n");
 
 		fclose(golden);
 		exit(GENERIC_ERROR_CODE);
@@ -256,7 +256,7 @@ static void execCmdRun(int argc, char **argv)
 
 	if (!injTarget)
 	{
-		fprintf(stderr, "Cannot find the injection target\n");
+		ERR_PRINT("Cannot find the injection target\n");
 
 		fclose(golden);
 		exit(GENERIC_ERROR_CODE);
@@ -277,7 +277,7 @@ static void execCmdGolden(int argc, char **argv)
 {
 	if (argc != 2)
 	{
-		fprintf(stderr, "The --golden command does not support additional parameters");
+		ERR_PRINT("The --golden command does not support additional parameters");
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
@@ -288,7 +288,7 @@ static void execInjectionCampaign(int argc, char **argv)
 {
 	if (argc != 3)
 	{
-		fprintf(stderr, "Invalid number of arguments for %s.\n", CMD_CAMPAIGN);
+		ERR_PRINT("Invalid number of arguments for %s.\n", CMD_CAMPAIGN);
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
@@ -315,7 +315,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	tefp = fopen(GOLDEN_FILE_PATH, "r");
 	if (tefp == NULL)
 	{
-		fprintf(stderr, "Couldn't open golden execution results file.\n");
+		ERR_PRINT("Couldn't open golden execution results file.\n");
 		return 2;
 	}
 	fgets(teBuffer, LENBUF - 1, tefp);
@@ -394,7 +394,7 @@ static void execInjectionCampaign(int argc, char **argv)
 			target_t *injTarget = getInjectionTarget(targets, campaign.targetStructure);
 			if (injTarget == NULL)
 			{
-				fprintf(stderr, "No target with name %s was found.\n", campaign.targetStructure);
+				ERR_PRINT("No target with name %s was found.\n", campaign.targetStructure);
 				return 4;
 			}
 
@@ -416,7 +416,7 @@ static void execInjectionCampaign(int argc, char **argv)
 				rand() % 2 ? (injTime += injectionCampaigns[i].variance) : (injTime = abs(injTime - (signed long)campaign.variance)); //choose if before or after selected time
 				break;
 			default:
-				fprintf(stderr, "No distribution with name %s is available.\n", campaign.distr);
+				ERR_PRINT("No distribution with name %s is available.\n", campaign.distr);
 				return 5;
 			}
 
@@ -424,7 +424,7 @@ static void execInjectionCampaign(int argc, char **argv)
 			int pid = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
 			if (pid < 0)
 			{
-				fprintf(stdout, "Couldn't create child process.\n");
+				ERR_PRINT("Couldn't create child process.\n");
 				return 6;
 			}
 			else if (pid > 0)
@@ -491,7 +491,7 @@ void vApplicationIdleHook(void)
 		}
 		vPortGenerateSimulatedInterrupt(5);
 		vTaskEndScheduler();
-		fprintf(stderr, "Executing past vTaskEndScheduler.\n"); // Never executed
+		ERR_PRINT("Executing past vTaskEndScheduler.\n"); // Never executed
 	}
 }
 /*-----------------------------------------------------------*/
@@ -542,7 +542,7 @@ void vAssertCalled(unsigned long ulLine, const char *const pcFileName)
 	(void)pcFileName;
 
 	// printf("ASSERT! Line %ld, file %s, GetLastError() %ld\r\n", ulLine, pcFileName, GetLastError());
-	printf("ASSERT! Line %ld, file %s\r\n", ulLine, pcFileName);
+	ERR_PRINT("ASSERT! Line %ld, file %s\r\n", ulLine, pcFileName);
 
 	taskENTER_CRITICAL();
 	{
@@ -748,7 +748,7 @@ static void runSimulator(const thData_t *injectionArgs)
 
 		if (resultCode == INJECTOR_THREAD_FAILURE)
 		{
-			fprintf(stderr, "Injector thread launch failure.\n");
+			ERR_PRINT("Injector thread launch failure.\n");
 			exit(INJECTOR_THREAD_LAUNCH_FAILURE_EXIT_CODE);
 		}
 
@@ -812,7 +812,7 @@ static void runSimulator(const thData_t *injectionArgs)
 	}
 
 	/* This should never be executed */
-	fprintf(stdout, "BIG DANGER!\nSomehow, the execution of the RTOS produced an unexpected output.\n");
+	ERR_PRINT("BIG DANGER!\nSomehow, the execution of the RTOS produced an unexpected output.\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -829,7 +829,7 @@ int executionResultIsCorrect(){
 	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
 	if (goldenfp == NULL)
 	{
-		fprintf(stdout, "Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
+		ERR_PRINT("Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
 		exit(EXIT_FAILURE);
 	}
 
@@ -855,7 +855,7 @@ static void writeGoldenFile()
 	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
 	if (goldenfp == NULL)
 	{
-		fprintf(stdout, "Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
+		ERR_PRINT("Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
 		exit(EXIT_FAILURE);
 	}
 
@@ -884,7 +884,7 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	FILE *inputCampaign = fopen(filename, "r");
 	if (inputCampaign == NULL)
 	{
-		fprintf(stderr, "Couldn't open input file input.csv.\n");
+		ERR_PRINT("Couldn't open input file input.csv.\n");
 		return 1;
 	}
 
@@ -903,23 +903,23 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 
 		char *rest;
 		// TODO: add more error handling
-		char *token = strtok_r(icBuffer, ",", &rest);
+		char *token = strtok_s(icBuffer, ",", &rest);
 		campaign->targetStructure = strdup(token);
 
 		// read the number of injections
-		token = strtok_r(rest, ",", &rest);
+		token = strtok_s(rest, ",", &rest);
 		campaign->nInjections = atol(token);
 
 		// read the injection time
-		token = strtok_r(rest, ",", &rest);
+		token = strtok_s(rest, ",", &rest);
 		campaign->medTimeRange = atol(token);
 
 		// read the injection time variance
-		token = strtok_r(rest, ",", &rest);
+		token = strtok_s(rest, ",", &rest);
 		campaign->variance = atol(token);
 
 		// read the distribution
-		token = strtok_r(rest, ",", &rest);
+		token = strtok_s(rest, ",", &rest);
 		token[1] = '\0';
 		campaign->distr = strdup(token);
 

@@ -1,8 +1,11 @@
 #undef UNICODE
 #undef _UNICODE
 
+#pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
+
 #include <windows.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "../fork.h"
 #include "fork_internal.h"
@@ -20,7 +23,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     PROCESS_INFORMATION procInfo;
 
     char buffer[256];
-    sprintf(buffer, "%s --run %d %d %d %d", injectorPath, target, time, offsetBit);
+    sprintf(buffer, "%s --run %s %d %d %d", injectorPath, target, time, offsetByte, offsetBit);
 
     BOOL result = CreateProcessA(
         NULL,                  // No module name (use command line)
@@ -48,8 +51,8 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 {
     WaitForSingleObject(instance->procHandle, INFINITE);
 
-    int exitCode;
+    DWORD exitCode;
     GetExitCodeProcess(instance->procHandle, &exitCode);
 
-    return exitCode;
+    return (int) exitCode;
 }

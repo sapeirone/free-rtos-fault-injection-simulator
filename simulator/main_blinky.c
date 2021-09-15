@@ -209,7 +209,7 @@ static unsigned long prvInterruptHandler( void )
 {
 	uint32_t ulReceivedValue;
 	BaseType_t *const HigherPrioTaskWoken = pdFALSE;
-	fprintf(stdout, "Handler has been called.\n");
+	DEBUG_PRINT("Handler has been called.\n");
 	xQueueReceiveFromISR( xQueue, &ulReceivedValue, HigherPrioTaskWoken );
 	printTrace();
 
@@ -296,7 +296,7 @@ uint32_t ulReceivedValue;
 		console output) from a FreeRTOS task. */
 		if( ulReceivedValue == mainVALUE_SENT_FROM_TASK )
 		{
-			printf( "Message received from task\r\n" );
+			OUTPUT_PRINT( "Message received from task\r\n" );
 			
 			if (isGolden) {
 				static int j = 0;
@@ -306,11 +306,11 @@ uint32_t ulReceivedValue;
 		}
 		else if( ulReceivedValue == mainVALUE_SENT_FROM_TIMER )
 		{
-			printf( "Message received from software timer\r\n" );
+			OUTPUT_PRINT( "Message received from software timer\r\n" );
 		}
 		else
 		{
-			printf( "Unexpected message\r\n" );
+			OUTPUT_PRINT( "Unexpected message\r\n" );
 		}
 	}
 }

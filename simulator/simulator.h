@@ -2,6 +2,8 @@
 
 #define DEBUG
 // #undef DEBUG
+#define OUTPUT_VERBOSE
+//#undef OUTPUT_VERBOSE
 
 #define GOLDEN_FILE_PATH "golden.txt"
 int isGolden;
@@ -35,3 +37,16 @@ int isGolden;
 	{                  \
 	} while (0)
 #endif
+
+#ifdef OUTPUT_VERBOSE
+#define OUTPUT_PRINT(format, ...) \
+    printf("[OUTPUT] " format, ##__VA_ARGS__)
+#else
+#define OUTPUT_PRINT(x) \
+	do                 \
+	{                  \
+	} while (0)
+#endif
+
+#define ERR_PRINT(format, ...) \
+    fprintf(stderr, "[ERR] " format, ##__VA_ARGS__)
