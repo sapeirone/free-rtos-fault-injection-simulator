@@ -1015,11 +1015,7 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 
 	printMany(stdout, '-', 115);
 	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
-<<<<<<< HEAD
-			"Target", "# Injections", "Silent %%", "Delay %%", "Error %%", "Hang %%", "Crash %%");
-=======
 			"Target", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
->>>>>>> Minor fixes
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
