@@ -572,20 +572,7 @@ void vAssertCalled(unsigned long ulLine, const char *const pcFileName)
 	// printf("ASSERT! Line %ld, file %s, GetLastError() %ld\r\n", ulLine, pcFileName, GetLastError());
 	ERR_PRINT("ASSERT! Line %ld, file %s\r\n", ulLine, pcFileName);
 
-	taskENTER_CRITICAL();
-	{
-		//__debugbreak();
-
-		/* You can step out of this function to debug the assertion by using
-		the debugger to set ulSetToNonZeroInDebuggerToContinue to a non-zero
-		value. */
-		while (ulSetToNonZeroInDebuggerToContinue == 0)
-		{
-			ASM_NOP;
-			ASM_NOP;
-		}
-	}
-	taskEXIT_CRITICAL();
+	exit(EXECUTION_RESULT_CRASH_EXIT_CODE);
 }
 /*-----------------------------------------------------------*/
 
@@ -821,7 +808,7 @@ static int traceOutputIsCorrect()
 	tmpBuffer[0] = strtok_s(rest, "\t", &rest);
 	tmpBuffer[1] = strtok_s(rest, "\t", &rest);
 
-	*token = strtok_s(loggerTrace[TRACELEN - 1], "\t", &rest);
+	token = strtok_s(loggerTrace[TRACELEN - 1], "\t", &rest);
 	tmpBuffer[2] = strtok_s(rest, "\t", &rest);
 	tmpBuffer[3] = strtok_s(rest, "\t", &rest);
 
@@ -870,7 +857,7 @@ static void writeGoldenFile()
 	fprintf(goldenfp, "%lu\n", goldenTime);
 	for (int i = 0; i < MAXARRAY; i++)
 	{
-		fprintf(stdout, "%s\n", array[i].qstring);
+		fprintf(goldenfp, "%s\n", array[i].qstring);
 	}
 	fclose(goldenfp);
 }
@@ -1028,7 +1015,11 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 
 	printMany(stdout, '-', 115);
 	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
+<<<<<<< HEAD
 			"Target", "# Injections", "Silent %%", "Delay %%", "Error %%", "Hang %%", "Crash %%");
+=======
+			"Target", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
+>>>>>>> Minor fixes
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
