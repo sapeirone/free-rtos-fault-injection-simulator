@@ -1,9 +1,9 @@
 #pragma once
 
 #define DEBUG
-// #undef DEBUG
+#undef DEBUG
 #define OUTPUT_VERBOSE
-//#undef OUTPUT_VERBOSE
+#undef OUTPUT_VERBOSE
 
 #define GOLDEN_FILE_PATH "golden.txt"
 int isGolden;

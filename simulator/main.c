@@ -145,6 +145,8 @@ static void execInjectionCampaign(int argc, char **argv);
 
 static int readInjectionCampaignList(const char *filename, injectionCampaign_t **campaignList);
 
+static void printProgressBar(double percentage);
+
 /**
  * List of injection targets for the current instance of the 
  * FreeRTOS simulator.
@@ -390,6 +392,9 @@ static void execInjectionCampaign(int argc, char **argv)
 			// For each injection in a campaign
 			nCurrentInjection++;
 			DEBUG_PRINT("Running injection n. %lu/%lu\n", nCurrentInjection, nTotalInjections);
+
+			/* Progress bar */
+			printProgressBar(((double) nCurrentInjection / nTotalInjections));
 
 			target_t *injTarget = getInjectionTarget(targets, campaign.targetStructure);
 			if (injTarget == NULL)
@@ -930,4 +935,43 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	fclose(inputCampaign);
 
 	return index;
+}
+
+static void printProgressBar(double percentage){
+	double barLen = 40;
+	static int rot = 0;
+	fprintf(stdout, "\r                                                   \r");
+	fprintf(stdout, "[");
+	for(double i = 0; i < barLen; ++i){
+		if(i < barLen * percentage)
+			fprintf(stdout, "#");
+		else
+			fprintf(stdout, " ");
+	}
+	if(percentage == 1)
+		fprintf(stdout, "] %.0f%%\n", 100 * percentage);
+	else
+	{
+		switch(rot){
+		case 0:
+			fprintf(stdout, "] %.0f%% |", 100 * percentage);
+			rot++;
+			break;
+		case 1:
+			fprintf(stdout, "] %.0f%% /", 100 * percentage);
+			rot++;
+			break;
+		case 2:
+			fprintf(stdout, "] %.0f%% -", 100 * percentage);
+			rot++;
+			break;
+		case 3:
+			fprintf(stdout, "] %.0f%% \\", 100 * percentage);
+			rot = 0;
+			break;
+		}
+	}
+	#if defined(DEBUG) || defined(OUTPUT_VERBOSE)
+	fprintf(stdout, "\n");
+	#endif
 }
