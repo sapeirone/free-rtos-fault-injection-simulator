@@ -412,7 +412,7 @@ static void execInjectionCampaign(int argc, char **argv)
 			// execution time of the golden simulation
 			if (campaign->medTimeRange > nanoGoldenEx)
 			{
-				fprintf(stderr, "Invalid injection for target %s\n", campaign->targetStructure);
+				fprintf(stderr, "Invalid injection time for target %s\n", campaign->targetStructure);
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
@@ -756,8 +756,9 @@ static void runSimulator(const thData_t *injectionArgs)
 
 	/* Launch the FreeRTOS */
 	prvInitialiseHeap();
-	main_blinky();
 
+	DEBUG_PRINT("Calling main_blinky...\n");
+	main_blinky();
 	DEBUG_PRINT("Call to main_blinky completed\n");
 
 	if (isGolden)
@@ -768,17 +769,16 @@ static void runSimulator(const thData_t *injectionArgs)
 	 * Refer to simulator.h for the exit codes values.
 	 */
 	int result = 50;
-	unsigned long nanoGoldenEx = 0, delay = 0, execTime = 0;
+	unsigned long nanoGoldenEx = 0, execTime = 0;
 	nanoGoldenEx = injectionArgs->timeoutNs / 3;
 
 	execTime = sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
-	delay = abs(nanoGoldenEx - execTime);
 
 	if (traceOutputIsCorrect())
 	{ // Correct Trace output, ISR worked
 		if (executionResultIsCorrect())
-		{					  // Execution result is correct
-			if (delay < 5000) // Silent execution, correct output
+		{ // Execution result is correct
+			if (execTime < (1.05 * nanoGoldenEx)) // Silent execution, correct output
 			{
 				exit(EXECUTION_RESULT_SILENT_EXIT_CODE);
 			}
@@ -789,7 +789,7 @@ static void runSimulator(const thData_t *injectionArgs)
 		}
 		else // Execution result is not correct
 		{
-			if (delay < 5000) // Error execution, incorrect output
+			if (execTime < (1.05 * nanoGoldenEx)) // Error execution, incorrect output
 			{
 				exit(EXECUTION_RESULT_ERROR_EXIT_CODE);
 			}
@@ -1036,4 +1036,5 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 				(100.0 * injectionCampaigns[i].res.nCrash) / injectionCampaigns[i].nInjections);
 	}
 	printMany(stdout, '-', 115);
+	fprintf(stdout, "\n");
 }
