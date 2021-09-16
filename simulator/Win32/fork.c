@@ -43,6 +43,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         return FREE_RTOS_FORK_FAILURE;
     }
 
+    SetPriorityClass(procInfo.hProcess, REALTIME_PRIORITY_CLASS);
     instance->procHandle = procInfo.hProcess;
     return FREE_RTOS_FORK_SUCCESS;
 }
