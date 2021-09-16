@@ -434,7 +434,7 @@ static void execInjectionCampaign(int argc, char **argv)
 				int lowerWidth = min(campaign->medTimeRange, campaign->variance);
 				int upperWidth = min(campaign->variance, nanoGoldenEx - campaign->medTimeRange);
 				int range = max(1, lowerWidth + upperWidth);
-				injTime = (rand() % range) - (range / 2) + (signed)campaign->medTimeRange;
+				injTime = (rand() % range) - lowerWidth + (signed)campaign->medTimeRange;
 			}
 
 			freeRTOSInstance instance;
