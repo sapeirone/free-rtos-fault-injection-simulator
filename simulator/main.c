@@ -772,7 +772,13 @@ static void runSimulator(const thData_t *injectionArgs)
 	unsigned long nanoGoldenEx = 0, execTime = 0;
 	nanoGoldenEx = injectionArgs->timeoutNs / 3;
 
-	execTime = sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
+	sscanf(loggerTrace[TRACELEN - 1], "%lu", &execTime);
+
+	/*
+	printf( "###################################################################\n" ); // Nice
+    for(int i = 0; i<TRACELEN; ++i){
+        printf( "%d\t%s\n", i, loggerTrace[i] );
+    }*/
 
 	if (traceOutputIsCorrect())
 	{ // Correct Trace output, ISR worked
@@ -822,7 +828,7 @@ static int traceOutputIsCorrect()
 	tmpBuffer[2] = strtok_s(rest, "\t", &rest);
 	tmpBuffer[3] = strtok_s(rest, "\t", &rest);
 
-	return (strncmp(tmpBuffer[0], "[IN]", 4) == 0 && strncmp(tmpBuffer[1], "IDLE", 4) == 0 &&
+	return (/*strncmp(tmpBuffer[0], "[IN]", 4) == 0 && strncmp(tmpBuffer[1], "IDLE", 4) == 0 &&*/
 			strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
 }
 

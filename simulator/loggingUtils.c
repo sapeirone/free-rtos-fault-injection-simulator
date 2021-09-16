@@ -9,12 +9,15 @@
 signed char loggerTrace[TRACELEN][LENBUF];
 
 void loggingFunction(int logCause){
-    
+    static int didReceiveISR = 0;
     unsigned long runTimeCounterValue = ulGetRunTimeCounterValue();
     static signed char bufferTCB[LENBUF];
     static signed char bufferStr[LENBUF];
     vTaskGetCurrentTCBStats(bufferTCB);
 
+    if(didReceiveISR)
+        return;
+    
     switch(logCause){
         case 0:
             sprintf(bufferStr, "%lu\t[OUT]\t%s", runTimeCounterValue, bufferTCB);
@@ -35,10 +38,12 @@ void loggingFunction(int logCause){
         case 4:
             sprintf(bufferStr, "%lu\t[SIF]\t%s", runTimeCounterValue, bufferTCB);
             writeToLoggerTrace(bufferStr);
+            didReceiveISR++;
             break;
         case 5:
             sprintf(bufferStr, "%lu\t[RIF]\t%s", runTimeCounterValue, bufferTCB);
             writeToLoggerTrace(bufferStr);
+            didReceiveISR++;
             break;
         default:
             printf("Trace Hook macro called logger with an invalid argument\n");
