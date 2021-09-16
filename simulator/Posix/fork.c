@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/resource.h>
 
 #include "../fork.h"
 #include "fork_internal.h"
@@ -28,6 +29,8 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         instance->pid = pid;
         return FREE_RTOS_FORK_SUCCESS;
     }
+
+    setpriority(PRIO_PROCESS, getpid(), -20);
 
     char timeBuffer[16];
     sprintf(timeBuffer, "%d", time);
