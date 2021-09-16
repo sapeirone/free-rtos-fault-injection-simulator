@@ -275,18 +275,26 @@ static void execCmdGolden(int argc, char **argv)
  * Execute the --campaign command.
  * 
  * Expected parameters:
- * ./sim --campaign /path/to/input/file.csv [-y]
+ * ./sim --campaign /path/to/input/file.csv [-y] [--no-pg-bar]
  */
 static void execInjectionCampaign(int argc, char **argv)
 {
-	if (argc != 3 && argc != 4)
+	if (argc < 3 || argc > 5)
 	{
 		ERR_PRINT("Invalid number of arguments for %s.\n", CMD_CAMPAIGN);
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
 	const char *input = argv[2];
-	char choice = (argc == 4 && strncmp(argv[3], "-y", 2) == 0) ? 'y' : '0';
+	char choice = '0';
+	int pgBarEnabled = 1;
+
+	if ((argc > 3 && strcmp(argv[3], "-y") == 0) || (argc > 4 && strcmp(argv[4], "-y") == 0)) {
+		choice = 'y';
+	}
+	if ((argc > 3 && strcmp(argv[3], "--no-pg-bar") == 0) || (argc > 4 && strcmp(argv[4], "--no-pg-bar") == 0)) {
+		pgBarEnabled = 0;
+	}
 
 	/**
 	 * Read from file the injection details which is the target structure, 
@@ -388,8 +396,10 @@ static void execInjectionCampaign(int argc, char **argv)
 			nCurrentInjection++;
 			DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
 
-			/* Progress bar */
-			printProgressBar(((double) nCurrentInjection / nTotalInjections));
+			if (pgBarEnabled) {
+				/* Progress bar */
+				printProgressBar(((double) nCurrentInjection / nTotalInjections));
+			}
 
 			target_t *injTarget = getInjectionTarget(targets, campaign->targetStructure);
 			if (injTarget == NULL)
