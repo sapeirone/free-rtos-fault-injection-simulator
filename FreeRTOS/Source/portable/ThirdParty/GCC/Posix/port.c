@@ -112,7 +112,7 @@ static void prvSwitchThread( Thread_t * xThreadToResume,
                              Thread_t *xThreadToSuspend );
 static void prvSuspendSelf( Thread_t * thread);
 static void prvResumeThread( Thread_t * xThreadId );
-static void vPortSystemTickHandler( int sig );
+static void vPortSystemTickHandler(int sig, siginfo_t *info, void *context);
 static void vPortStartFirstTask( void );
 /*-----------------------------------------------------------*/
 
@@ -222,7 +222,7 @@ sigset_t xSignals;
 
 #if ( configUSE_TIMERS == 1 )
     /* Cancel the Timer task and free its resources */
-    vPortCancelThread( xTimerGetTimerDaemonTaskHandle() );
+    //vPortCancelThread( xTimerGetTimerDaemonTaskHandle() );
 #endif /* configUSE_TIMERS */
 
     /* Restore original signal mask. */
@@ -260,7 +260,11 @@ Thread_t *xCurrentThread;
     //(void)pthread_kill( hMainThread, SIG_RESUME );
 
     xCurrentThread = prvGetThreadFromTask( xTaskGetCurrentTaskHandle() );
-    prvSuspendSelf(xCurrentThread);
+    // the following lines allow vPortEndScheduler to be called
+    // from a non-task thread
+    if (pthread_equal(pthread_self(), xCurrentThread->pthread)) {
+        prvSuspendSelf(xCurrentThread);
+    }
 }
 /*-----------------------------------------------------------*/
 
@@ -388,9 +392,22 @@ void prvSetupGenericInterrupts() {
 
 }
 /*-----------------------------------------------------------*/
+extern pthread_t injectorThreadId;
 
-static void vPortSystemTickHandler( int sig )
+static void* doSomething (void *arg) {
+    Thread_t *pxThreadToSuspend = prvGetThreadFromTask( xTaskGetCurrentTaskHandle() );
+    pthread_kill(pxThreadToSuspend->pthread, SIGALRM);
+}
+
+static void vPortSystemTickHandler(int sig, siginfo_t *info, void *context)
 {
+    if (pthread_equal(injectorThreadId, pthread_self())) {
+        // printf("vPortSystemTickHandler called on the injector thread\n");
+        pthread_t id;
+        pthread_create(&id, NULL, doSomething, NULL);
+        return;
+    }
+
 Thread_t *pxThreadToSuspend;
 Thread_t *pxThreadToResume;
 /* uint64_t xExpectedTicks; */
@@ -491,7 +508,9 @@ BaseType_t uxSavedCriticalNesting;
         {
             pthread_exit( NULL );
         }
-        prvSuspendSelf( pxThreadToSuspend );
+        if (pthread_equal(pthread_self(), pxThreadToSuspend->pthread)) {
+            prvSuspendSelf( pxThreadToSuspend );
+        }
 
         uxCriticalNesting = uxSavedCriticalNesting;
     }
@@ -564,7 +583,7 @@ int iRet;
     sigresume.sa_handler = SIG_IGN;
     sigfillset( &sigresume.sa_mask );
 
-    sigtick.sa_flags = 0;
+    sigtick.sa_flags = SA_SIGINFO;
     sigtick.sa_handler = vPortSystemTickHandler;
     sigfillset( &sigtick.sa_mask );
 

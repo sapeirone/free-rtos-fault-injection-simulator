@@ -70,7 +70,8 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
 
 /*-----------------------------------------------------------*/
 
-extern void main_blinky(void);
+extern void mainSetup(void);
+extern void mainRun(void);
 
 /*
  * This demo uses heap_5.c, so start by defining some heap regions.  It is not
@@ -732,6 +733,13 @@ static void printApplicationArguments(int argc, char **argv)
 
 static void runSimulator(const thData_t *injectionArgs)
 {
+	/* Launch the FreeRTOS */
+	prvInitialiseHeap();
+
+	DEBUG_PRINT("Calling mainSetup...\n");
+	mainSetup();
+	DEBUG_PRINT("Call to mainSetup completed\n");
+
 	if (injectionArgs)
 	{
 		// the simulation should perform an injection
@@ -754,12 +762,9 @@ static void runSimulator(const thData_t *injectionArgs)
 		isGolden = 1;
 	}
 
-	/* Launch the FreeRTOS */
-	prvInitialiseHeap();
-
-	DEBUG_PRINT("Calling main_blinky...\n");
-	main_blinky();
-	DEBUG_PRINT("Call to main_blinky completed\n");
+	DEBUG_PRINT("Calling mainRun...\n");
+	mainRun();
+	DEBUG_PRINT("Call to mainRun completed\n");
 
 	if (isGolden)
 		exit(EXIT_SUCCESS);

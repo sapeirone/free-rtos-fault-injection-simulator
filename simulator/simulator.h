@@ -1,12 +1,17 @@
 #pragma once
 
 #define DEBUG
-#undef DEBUG
+//#undef DEBUG
 #define OUTPUT_VERBOSE
-#undef OUTPUT_VERBOSE
+//#undef OUTPUT_VERBOSE
 
 #define GOLDEN_FILE_PATH "golden.txt"
 int isGolden;
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include <stdio.h>
+#include <unistd.h>
 
 /* Platform dependent ASM utilities */
 #include "asm.h"
@@ -37,8 +42,13 @@ int isGolden;
 #define EXECUTION_RESULT_CRASH_EXIT_CODE 50
 
 #ifdef DEBUG
-#define DEBUG_PRINT(format, ...) \
-    printf("[DEBUG] " format, ##__VA_ARGS__)
+
+#define DEBUG_PRINT(format, ...) do {\
+	taskENTER_CRITICAL();\
+	printf("[DEBUG ] " format, ##__VA_ARGS__);\
+	taskEXIT_CRITICAL();\
+} while(0);
+
 #else
 #define DEBUG_PRINT(...) \
 	do                 \
@@ -47,8 +57,15 @@ int isGolden;
 #endif
 
 #ifdef OUTPUT_VERBOSE
-#define OUTPUT_PRINT(format, ...) \
-    printf("[OUTPUT] " format, ##__VA_ARGS__)
+
+#define OUTPUT_PRINT(format, ...) do {\
+	taskENTER_CRITICAL();\
+	char __buffer[1024];\
+	sprintf(__buffer, "[OUTPUT] " format, ##__VA_ARGS__);\
+	write(STDOUT_FILENO, __buffer, strlen(__buffer));\
+	taskEXIT_CRITICAL();\
+} while(0);
+
 #else
 #define OUTPUT_PRINT(...) \
 	do                 \

@@ -148,7 +148,7 @@ static TimerHandle_t xTimer = NULL;
 /*-----------------------------------------------------------*/
 
 /*** SEE THE COMMENTS AT THE TOP OF THIS FILE ***/
-void main_blinky( void )
+void mainSetup( void )
 {
 	const TickType_t xTimerPeriod = mainTIMER_SEND_FREQUENCY_MS;
 
@@ -181,11 +181,13 @@ void main_blinky( void )
 					NULL );						// The task handle is not required, so NULL is passed.
 
 		vPortSetInterruptHandler( 5, prvInterruptHandler );
-
-		/* Start the tasks and timer running. */
-		vTaskStartScheduler();
-		DEBUG_PRINT("Executing past vTaskStartScheduler.\n");
 	}
+}
+
+void mainRun(void) {
+	/* Start the tasks and timer running. */
+	vTaskStartScheduler();
+	DEBUG_PRINT("Executing past vTaskStartScheduler.\n");
 }
 
 /* -------------------- Benchmark tasks -------------------- */
