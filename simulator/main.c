@@ -425,7 +425,17 @@ static void execInjectionCampaign(int argc, char **argv)
 			switch (campaign->distribution)
 			{
 			case 'g':
-				// TODO
+
+				//gaussian distribution approximated startig from the Irwin-Hall distribution
+
+				double total = 0;
+				for(int gaussian = 0; gaussian < 12; ++gaussian){
+					total += rand() % 1000;
+				}
+				total = (total-6000)/1000;
+
+				injTime=total*campaign->variance/6 + campaign->medTimeRange;
+				
 				break;
 			case 'u':
 			default:
