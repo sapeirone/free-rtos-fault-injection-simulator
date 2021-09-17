@@ -451,8 +451,7 @@ static void execInjectionCampaign(int argc, char **argv)
 				injTime=total*campaign->variance + campaign->medTimeRange;
 				
 				break;
-			case 'u':
-
+				
 			case 'u':
 			default:
 				injTime = campaign->medTimeRange;
