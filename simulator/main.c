@@ -426,7 +426,7 @@ static void execInjectionCampaign(int argc, char **argv)
 			{
 			case 'g':
 
-				//gaussian distribution approximated startig from the Irwin-Hall distribution
+				//gaussian distribution approximated starting from the Irwin-Hall distribution
 
 				double total = 0;
 				for(int gaussian = 0; gaussian < 12; ++gaussian){
@@ -437,6 +437,22 @@ static void execInjectionCampaign(int argc, char **argv)
 				injTime=total*campaign->variance/6 + campaign->medTimeRange;
 				
 				break;
+
+				case 't':
+
+				//triangular distribution
+
+				double total = 0;
+				for(int gaussian = 0; gaussian < 12; ++gaussian){
+					total += rand() % 1000;
+				}
+				total = (total-1000)/1000;
+
+				injTime=total*campaign->variance + campaign->medTimeRange;
+				
+				break;
+			case 'u':
+
 			case 'u':
 			default:
 				injTime = campaign->medTimeRange;
