@@ -421,14 +421,14 @@ static void execInjectionCampaign(int argc, char **argv)
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
 
+			double total = 0;
+
 			// pick a distribution
 			switch (campaign->distribution)
 			{
 			case 'g':
 
 				//gaussian distribution approximated starting from the Irwin-Hall distribution
-
-				double total = 0;
 				for(int gaussian = 0; gaussian < 12; ++gaussian){
 					total += rand() % 1000;
 				}
@@ -438,11 +438,9 @@ static void execInjectionCampaign(int argc, char **argv)
 				
 				break;
 
-				case 't':
+			case 't':
 
 				//triangular distribution
-
-				double total = 0;
 				for(int gaussian = 0; gaussian < 12; ++gaussian){
 					total += rand() % 1000;
 				}

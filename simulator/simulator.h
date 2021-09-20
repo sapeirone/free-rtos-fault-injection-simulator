@@ -46,51 +46,54 @@ int isGolden;
 
 #ifdef DEBUG
 
-#define DEBUG_PRINT(format, ...) do {\
 #ifdef POSIX
+#define DEBUG_PRINT(format, ...) do {\
 	char __buffer[1024];\
 	sprintf(__buffer, "[DEBUG] " format, ##__VA_ARGS__);\
 	write(STDOUT_FILENO, __buffer, strlen(__buffer));\
-#else
-	fprintf(stdout, "[DEBUG] " format, ##__VA_ARGS__);
-#endif
 } while(0);
+#else // POSIX
+#define DEBUG_PRINT(format, ...) \
+	fprintf(stdout, "[DEBUG] " format, ##__VA_ARGS__);
+#endif // POSIX
 
-#else
+#else // DEBUG
 #define DEBUG_PRINT(...) \
 	do                 \
 	{                  \
 	} while (0)
-#endif
+#endif // DEBUG
 
 #ifdef OUTPUT_VERBOSE
 
-#define OUTPUT_PRINT(format, ...) do {\
 #ifdef POSIX
+#define OUTPUT_PRINT(format, ...) do {\
 	char __buffer[1024];\
 	sprintf(__buffer, "[OUTPUT] " format, ##__VA_ARGS__);\
 	write(STDOUT_FILENO, __buffer, strlen(__buffer));\
-#else
-	fprintf(stdout, "[OUPUT] " format, ##__VA_ARGS__);
-#endif
 } while(0);
+#else // POSIX
+#define OUTPUT_PRINT(format, ...) \
+	fprintf(stdout, "[OUTPUT] " format, ##__VA_ARGS__);
+#endif // POSIX
 
-#else
+#else // OUTPUT_VERBOSE
 #define OUTPUT_PRINT(...) \
 	do                 \
 	{                  \
 	} while (0)
-#endif
+#endif // OUTPUT_VERBOSE
 
-#define ERR_PRINT(format, ...) do {\
 #ifdef POSIX
+#define ERR_PRINT(format, ...) do {\
     char __buffer[1024];\
 	sprintf(__buffer, "[ERROR ] " format, ##__VA_ARGS__);\
 	write(STDERR_FILENO, __buffer, strlen(__buffer));\
+} while(0);
 #else
+#define ERR_PRINT(format, ...) \
 	fprintf(stderr, "[ERROR ] " format, ##__VA_ARGS__);
 #endif
-} while(0);
 
 // useful macros
 #undef min
