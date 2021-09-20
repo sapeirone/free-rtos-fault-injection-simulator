@@ -1,3 +1,13 @@
 # use '#' for comments
-uxTopReadyPriority,500,1000000,5000,u
-# xNumOfOverflows,10,1000000,5000,u
+uxTopReadyPriority,50,20000000,5000,u
+xNumOfOverflows,50,20000000,5000,u
+xDelayedTaskList2,50,20000000,5000,u
+xIdleTaskHandle,50,20000000,5000,u
+xSchedulerRunning,50,20000000,5000,u
+xTimerTaskHandle,50,20000000,5000,u
+xTimerQueue,50,20000000,5000,u
+xNextTaskUnblockTime,50,20000000,5000,u
+xTasksWaitingTermination,50,20000000,5000,u
+uxDeletedTasksWaitingCleanUp,50,20000000,5000,u
+xActiveTimerList1,50,20000000,5000,u
+xYieldPending,50,20000000,5000,u

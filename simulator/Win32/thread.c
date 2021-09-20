@@ -18,6 +18,7 @@ int launchInjectorThread(void* (*function) (void*),
     if(thread == INVALID_HANDLE_VALUE){
         return INJECTOR_THREAD_FAILURE;
     }
+    SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
     id->thread_id = thread;
     return INJECTOR_THREAD_SUCCESS;
 }
