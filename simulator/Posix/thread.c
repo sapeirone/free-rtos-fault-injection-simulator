@@ -17,6 +17,7 @@ int launchInjectorThread(void *(*function)(void *),
                  const thData_t *injectionArgs,
                  thread_t *id)
 {
+
     DEBUG_PRINT("launchInjectorThread called...\n");
     pthread_attr_t attrs;
 

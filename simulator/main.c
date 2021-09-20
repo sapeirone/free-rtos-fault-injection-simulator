@@ -761,10 +761,6 @@ static void runSimulator(const thData_t *injectionArgs)
 	/* Launch the FreeRTOS */
 	prvInitialiseHeap();
 
-	DEBUG_PRINT("Calling mainSetup...\n");
-	mainSetup();
-	DEBUG_PRINT("Call to mainSetup completed\n");
-
 	if (injectionArgs)
 	{
 		// the simulation should perform an injection
@@ -786,6 +782,10 @@ static void runSimulator(const thData_t *injectionArgs)
 	{
 		isGolden = 1;
 	}
+
+	DEBUG_PRINT("Calling mainSetup...\n");
+	mainSetup();
+	DEBUG_PRINT("Call to mainSetup completed\n");
 
 	DEBUG_PRINT("Calling mainRun...\n");
 	mainRun();

@@ -66,8 +66,8 @@ endif()
 file(GLOB sources ${SIMULATOR_DIR}/main.c)
 list(APPEND sources ${SIMULATOR_DIR}/main_blinky.c)
 list(APPEND sources ${SIMULATOR_DIR}/loggingUtils.c)
-list(APPEND sources ${SIMULATOR_DIR}/injection/injection.c)
 list(APPEND sources ${SIMULATOR_DIR}/benchmark/benchmark.c)
+list(APPEND sources ${SIMULATOR_DIR}/injection/injection.c)
 
 if (UNIX) 
     # posix-dependent source code
@@ -90,5 +90,5 @@ add_library(freertos STATIC ${FreeRTOS_src})
 target_link_libraries(${PROJECT_NAME} freertos)
 
 if (UNIX)
-    target_link_libraries(${PROJECT_NAME} pthread)
+    target_link_libraries(${PROJECT_NAME} pthread rt)
 endif()

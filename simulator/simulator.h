@@ -11,7 +11,10 @@ int isGolden;
 #include "FreeRTOS.h"
 #include "task.h"
 #include <stdio.h>
+
+#ifdef POSIX 
 #include <unistd.h>
+#endif
 
 /* Platform dependent ASM utilities */
 #include "asm.h"
@@ -44,9 +47,13 @@ int isGolden;
 #ifdef DEBUG
 
 #define DEBUG_PRINT(format, ...) do {\
-	taskENTER_CRITICAL();\
-	printf("[DEBUG ] " format, ##__VA_ARGS__);\
-	taskEXIT_CRITICAL();\
+#ifdef POSIX
+	char __buffer[1024];\
+	sprintf(__buffer, "[DEBUG] " format, ##__VA_ARGS__);\
+	write(STDOUT_FILENO, __buffer, strlen(__buffer));\
+#else
+	fprintf(stdout, "[DEBUG] " format, ##__VA_ARGS__);
+#endif
 } while(0);
 
 #else
@@ -59,11 +66,13 @@ int isGolden;
 #ifdef OUTPUT_VERBOSE
 
 #define OUTPUT_PRINT(format, ...) do {\
-	taskENTER_CRITICAL();\
+#ifdef POSIX
 	char __buffer[1024];\
 	sprintf(__buffer, "[OUTPUT] " format, ##__VA_ARGS__);\
 	write(STDOUT_FILENO, __buffer, strlen(__buffer));\
-	taskEXIT_CRITICAL();\
+#else
+	fprintf(stdout, "[OUPUT] " format, ##__VA_ARGS__);
+#endif
 } while(0);
 
 #else
@@ -73,8 +82,15 @@ int isGolden;
 	} while (0)
 #endif
 
-#define ERR_PRINT(format, ...) \
-    fprintf(stderr, "[ERR] " format, ##__VA_ARGS__)
+#define ERR_PRINT(format, ...) do {\
+#ifdef POSIX
+    char __buffer[1024];\
+	sprintf(__buffer, "[ERROR ] " format, ##__VA_ARGS__);\
+	write(STDERR_FILENO, __buffer, strlen(__buffer));\
+#else
+	fprintf(stderr, "[ERROR ] " format, ##__VA_ARGS__);
+#endif
+} while(0);
 
 // useful macros
 #undef min

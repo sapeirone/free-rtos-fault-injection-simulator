@@ -67,6 +67,8 @@
 #include "utils/wait_for_event.h"
 /*-----------------------------------------------------------*/
 
+extern pthread_t injectorThreadId;
+
 #define SIG_RESUME SIGUSR1
 #define SIG_INTERRUPT SIGUSR2
 
@@ -402,7 +404,13 @@ static void* doSomething (void *arg) {
 static void vPortSystemTickHandler(int sig, siginfo_t *info, void *context)
 {
     if (pthread_equal(injectorThreadId, pthread_self())) {
-        // printf("vPortSystemTickHandler called on the injector thread\n");
+        // this should never be called
+        printf("vPortSystemTickHandler called on the injector thread\n");
+
+        sigset_t new, old;
+        sigfillset(&new);
+        pthread_sigmask(SIG_SETMASK, &new, &old);
+
         pthread_t id;
         pthread_create(&id, NULL, doSomething, NULL);
         return;
@@ -551,6 +559,8 @@ static void vPortInterruptsHandler () {
         interruptHandler();
     }
 }
+
+pthread_barrier_t my_barrier, my_barrier2;
 
 static void prvSetupSignalsAndSchedulerPolicy( void )
 {
