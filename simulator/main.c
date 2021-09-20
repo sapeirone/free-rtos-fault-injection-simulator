@@ -103,6 +103,7 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 
 /* Notes if the trace is running or not. */
 static BaseType_t xTraceRunning = pdTRUE;
+unsigned long injTime = -1;
 
 static void printApplicationArguments(int argc, char **argv);
 
@@ -235,7 +236,7 @@ static void execCmdRun(int argc, char **argv)
 	DEBUG_PRINT("Execution timeout is %lu\n", goldenExecTime);
 
 	// TODO: replace with strol (atol does NOT detect errors)
-	unsigned long injTime = atol(argv[3]);
+	injTime = atol(argv[3]);
 	unsigned long offsetByte = atol(argv[4]);
 	unsigned long offsetBit = atol(argv[5]);
 
@@ -579,6 +580,9 @@ void vApplicationTickHook(void)
 	added here, but the tick hook is called from an interrupt context, so
 	code must not attempt to block, and only the interrupt safe FreeRTOS API
 	functions can be used (those that end in FromISR()). */
+
+	if(!isGolden && GetTickCount() >= pdMS_TO_TICKS(injTime))
+		wakeInjector();
 }
 /*-----------------------------------------------------------*/
 
