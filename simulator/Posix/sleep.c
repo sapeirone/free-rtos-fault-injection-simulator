@@ -25,9 +25,9 @@ struct event *injectionEvent;
 
 void injectorWait () {
     injectionEvent = event_create();
-    event_wait(&injectionEvent);
+    event_wait(injectionEvent);
 }
 
 void wakeInjector () {
-    event_signal(&injectionEvent);
+    event_signal(injectionEvent);
 }
