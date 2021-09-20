@@ -583,12 +583,14 @@ void vApplicationTickHook(void)
 	code must not attempt to block, and only the interrupt safe FreeRTOS API
 	functions can be used (those that end in FromISR()). */
 
-	//printf("hola");
+#ifdef WIN32
+int eventIsSet = 1;
 
 	if((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime)) {
         //fprintf(stdout, "isGolden = %d eventIsSet = %d runTimeCounterValue = %lu injTime = %lu\n", isGolden, eventIsSet, runTimeCounterValue, injTime);
 		wakeInjector();
     }
+#endif
 }
 /*-----------------------------------------------------------*/
 
@@ -769,6 +771,10 @@ static void runSimulator(const thData_t *injectionArgs)
 	/* Launch the FreeRTOS */
 	prvInitialiseHeap();
 
+	DEBUG_PRINT("Calling mainSetup...\n");
+	mainSetup();
+	DEBUG_PRINT("Call to mainSetup completed\n");
+
 	if (injectionArgs)
 	{
 		// the simulation should perform an injection
@@ -790,10 +796,6 @@ static void runSimulator(const thData_t *injectionArgs)
 	{
 		isGolden = 1;
 	}
-
-	DEBUG_PRINT("Calling mainSetup...\n");
-	mainSetup();
-	DEBUG_PRINT("Call to mainSetup completed\n");
 
 	DEBUG_PRINT("Calling mainRun...\n");
 	mainRun();

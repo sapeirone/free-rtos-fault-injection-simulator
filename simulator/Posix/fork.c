@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/resource.h>
+#include <sched.h>
 
 #include "../fork.h"
 #include "fork_internal.h"
@@ -29,6 +30,10 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         instance->pid = pid;
         return FREE_RTOS_FORK_SUCCESS;
     }
+
+    struct sched_param p;
+    p.sched_priority = sched_get_priority_max(SCHED_RR);
+    sched_setscheduler(getpid(), SCHED_RR, &p); // fail silently
 
     setpriority(PRIO_PROCESS, getpid(), -20);
 
