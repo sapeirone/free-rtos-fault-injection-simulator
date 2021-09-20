@@ -16,17 +16,13 @@ void *injectorFunction(void *arg)
     DEBUG_PRINT("Requested injection offset byte: %lu\n", data->offsetByte);
     DEBUG_PRINT("Requested injection offset bit: %lu\n", data->offsetBit);
 
-    // printf("already %lu", ulGetRunTimeCounterValue());
-    #ifdef POSIX
-    sleepNanoseconds(data->injTime - ulGetRunTimeCounterValue());
-    #else
-    injectorWait ();
-    #endif
+    sleepNanoseconds(data->injTime);
+    //injectorWait ();
 
-    unsigned long currentTime = ulGetRunTimeCounterValue();
+    unsigned long long currentTime = ulGetRunTimeCounterValue();
 
     DEBUG_PRINT("Performing the injection at time %lu...\n", currentTime);
-    printf("Injection delay:\t%d\n", (signed) currentTime - (signed) data->injTime);
+    printf("\tInjection delay: %d (%d - %d) \n", ((signed) currentTime - (signed) data->injTime), (signed) currentTime, (signed) data->injTime);
     *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
     DEBUG_PRINT("Injection completed\n");
 

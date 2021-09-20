@@ -18,9 +18,8 @@ void loggingFunction(int logCause){
     static signed char bufferTCB[LENBUF];
     static signed char bufferStr[LENBUF];
     vTaskGetCurrentTCBStats(bufferTCB);
-    /*
-    if((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime)) {
-        //fprintf(stdout, "isGolden = %d eventIsSet = %d runTimeCounterValue = %lu injTime = %lu\n", isGolden, eventIsSet, runTimeCounterValue, injTime);
+
+    /*if(!isGolden && (ulGetRunTimeCounterValue() >= injTime)) {
 		wakeInjector();
     }*/
 
