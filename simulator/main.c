@@ -581,8 +581,11 @@ void vApplicationTickHook(void)
 	code must not attempt to block, and only the interrupt safe FreeRTOS API
 	functions can be used (those that end in FromISR()). */
 
-	if(!isGolden && GetTickCount() >= pdMS_TO_TICKS(injTime))
-		wakeInjector();
+	/*printf("hola");
+
+	if(!isGolden && ulGetRunTimeCounterValue() >= injTime)
+		printf("unlocking...\n");
+		wakeInjector();*/
 }
 /*-----------------------------------------------------------*/
 

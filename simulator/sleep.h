@@ -2,5 +2,6 @@
 #define SLEEP_FAILURE 1
 
 void sleepNanoseconds (unsigned long ns);
+
 void injectorWait();
 void wakeInjector();

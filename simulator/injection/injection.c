@@ -16,7 +16,8 @@ void *injectorFunction(void *arg)
     DEBUG_PRINT("Requested injection offset byte: %lu\n", data->offsetByte);
     DEBUG_PRINT("Requested injection offset bit: %lu\n", data->offsetBit);
 
-    sleepNanoseconds(data->injTime);
+    // sleepNanoseconds(data->injTime);
+    injectorWait ();
 
     unsigned long currentTime = ulGetRunTimeCounterValue();
 

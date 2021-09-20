@@ -8,12 +8,18 @@
 
 signed char loggerTrace[TRACELEN][LENBUF];
 
+extern unsigned long injTime;
+
 void loggingFunction(int logCause){
     static int didReceiveISR = 0;
     unsigned long runTimeCounterValue = ulGetRunTimeCounterValue();
     static signed char bufferTCB[LENBUF];
     static signed char bufferStr[LENBUF];
     vTaskGetCurrentTCBStats(bufferTCB);
+
+    if(!isGolden && ulGetRunTimeCounterValue() >= injTime) {
+		wakeInjector();
+    }
 
     if(didReceiveISR)
         return;
