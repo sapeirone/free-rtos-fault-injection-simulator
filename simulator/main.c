@@ -49,6 +49,7 @@
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "sleep.h"
 
 #include "simulator.h"
 #include "benchmark/benchmark.h"
@@ -58,6 +59,7 @@ extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* Global variables */
 extern int isGolden;
+extern int eventIsSet;
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
@@ -581,11 +583,12 @@ void vApplicationTickHook(void)
 	code must not attempt to block, and only the interrupt safe FreeRTOS API
 	functions can be used (those that end in FromISR()). */
 
-	/*printf("hola");
+	//printf("hola");
 
-	if(!isGolden && ulGetRunTimeCounterValue() >= injTime)
-		printf("unlocking...\n");
-		wakeInjector();*/
+	if((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime)) {
+        //fprintf(stdout, "isGolden = %d eventIsSet = %d runTimeCounterValue = %lu injTime = %lu\n", isGolden, eventIsSet, runTimeCounterValue, injTime);
+		wakeInjector();
+    }
 }
 /*-----------------------------------------------------------*/
 

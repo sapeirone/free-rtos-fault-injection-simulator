@@ -4,11 +4,13 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "simulator.h"
+#include "sleep.h"
 #pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
 
 signed char loggerTrace[TRACELEN][LENBUF];
 
 extern unsigned long injTime;
+extern int eventIsSet;
 
 void loggingFunction(int logCause){
     static int didReceiveISR = 0;
@@ -16,10 +18,11 @@ void loggingFunction(int logCause){
     static signed char bufferTCB[LENBUF];
     static signed char bufferStr[LENBUF];
     vTaskGetCurrentTCBStats(bufferTCB);
-
-    if(!isGolden && ulGetRunTimeCounterValue() >= injTime) {
+    /*
+    if((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime)) {
+        //fprintf(stdout, "isGolden = %d eventIsSet = %d runTimeCounterValue = %lu injTime = %lu\n", isGolden, eventIsSet, runTimeCounterValue, injTime);
 		wakeInjector();
-    }
+    }*/
 
     if(didReceiveISR)
         return;

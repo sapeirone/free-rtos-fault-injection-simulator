@@ -3,7 +3,8 @@
 #include "windows.h"
 #include "simulator.h"
 
-HANDLE wakeInjEv;
+HANDLE wakeInjEv = INVALID_HANDLE_VALUE;
+int eventIsSet = 0;
 
 void sleepNanoseconds(unsigned long ns)
 {
@@ -23,20 +24,20 @@ void sleepNanoseconds(unsigned long ns)
 }
 
 void injectorWait(){
-	wakeInjEv = CreateEvent(NULL, TRUE, TRUE, NULL);
-
-    if (wakeInjEv == NULL) 
-    { 
-        ERR_PRINT("CreateEvent failed (%d)\n", GetLastError());
-    }
+	if(!eventIsSet){
+		wakeInjEv = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (wakeInjEv == NULL)
+			ERR_PRINT("CreateEvent failed (%d)\n", GetLastError());
+		eventIsSet++;
+	}		
 
 	WaitForSingleObject(wakeInjEv, INFINITE);
 
-	closeHandle(wakeInjEv);
+	CloseHandle(wakeInjEv);
 }
 
 void wakeInjector(){
-	if (!SetEvent(wakeInjEv) ) 
+	if (eventIsSet-- == 1 && !SetEvent(wakeInjEv) && !SwitchToThread()) 
     {
         ERR_PRINT("SetEvent failed (%d)\n", GetLastError());
         return;
