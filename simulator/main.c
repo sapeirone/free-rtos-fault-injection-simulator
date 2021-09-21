@@ -125,7 +125,7 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth);
  * 
  * @return an injection target (or NULL otherwise).
  */
-target_t *getInjectionTarget(target_t *target, char *toSearch);
+target_t *getInjectionTarget(target_t *target, const char *toSearch);
 
 static void runSimulator(const thData_t *injectionArgs);
 static void writeGoldenFile();
@@ -260,7 +260,7 @@ static void execCmdRun(int argc, char **argv)
 
 	if (!injTarget)
 	{
-		ERR_PRINT("Cannot find the injection target\n");
+		ERR_PRINT("Cannot find the injection target %s\n", argv[2]);
 
 		fclose(golden);
 		exit(GENERIC_ERROR_EXIT_CODE);
@@ -746,19 +746,21 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 	}
 }
 
-target_t *getInjectionTarget(target_t *list, char *toSearch)
+target_t *getInjectionTarget(target_t *list, const char *toSearch)
 {
 	if (!list || !toSearch) {
 		// invalid parameters
 		return NULL;
 	}
 
+	char *copyToSearch = strdup(toSearch);
 	// split the query string and extract parent and child references
 	char *parentNode = NULL, *childNode = NULL;
-	parentNode = strtok_s(toSearch, ".", &childNode);
+	parentNode = strtok_s(copyToSearch, ".", &childNode);
 
 	if (!parentNode) {
 		// invalid toSearch string
+		free(copyToSearch);
 		return NULL;
 	}
 
@@ -775,6 +777,8 @@ target_t *getInjectionTarget(target_t *list, char *toSearch)
 
 				target_t *retValue = (target_t *)malloc(sizeof(target_t));
 				memmove(retValue, tmp, sizeof(target_t));
+
+				free(copyToSearch);
 				return retValue;
 			}
 
@@ -787,8 +791,13 @@ target_t *getInjectionTarget(target_t *list, char *toSearch)
 					// the start of its parent
 					target_t *retValue = (target_t *)malloc(sizeof(target_t));
 					memmove(retValue, child, sizeof(target_t));
-					retValue->address = (void *)((unsigned long)tmp->address + (unsigned long)child->address);
 
+					// recompute the address
+					retValue->address = (void *)((unsigned long)tmp->address + (unsigned long)child->address);
+					// rewrite the full name
+					sprintf(retValue->name, "%s.%s", tmp->name, child->name);
+
+					free(copyToSearch);
 					return retValue;
 				}
 			}
@@ -799,6 +808,7 @@ target_t *getInjectionTarget(target_t *list, char *toSearch)
 	}
 
 	// no target found
+	free(copyToSearch);
 	return NULL;
 }
 

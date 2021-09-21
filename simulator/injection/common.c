@@ -13,7 +13,7 @@ target_t *create_target(const char *name, void *address, target_type_t type,
     if (target)
     {
         target->id=id;
-        target->name = name;
+        strcpy(target->name, name);
         target->address = address;
         target->type = type;
         target->size = size;
