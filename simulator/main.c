@@ -490,8 +490,8 @@ static void execInjectionCampaign(int argc, char **argv)
 			}
 
 			// Father process
-			int exitCode = waitFreeRTOSInjection(&instance);
-			DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %d...\n\n", nCurrentInjection, nTotalInjections, exitCode);
+			unsigned int exitCode = waitFreeRTOSInjection(&instance);
+			DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %u...\n\n", nCurrentInjection, nTotalInjections, exitCode);
 
 			switch (exitCode)
 			{
@@ -509,6 +509,7 @@ static void execInjectionCampaign(int argc, char **argv)
 				break;
 			case EXECUTION_RESULT_CRASH_EXIT_CODE:
 			default:
+				printf("%u\n", exitCode);
 				campaign->res.nCrash++;
 			}
 		}

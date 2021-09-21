@@ -52,8 +52,8 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 {
     WaitForSingleObject(instance->procHandle, INFINITE);
 
-    DWORD exitCode;
+    DWORD exitCode = 0;
     GetExitCodeProcess(instance->procHandle, &exitCode);
 
-    return (int) exitCode;
+    return (unsigned int) exitCode;
 }
