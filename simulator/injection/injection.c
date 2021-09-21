@@ -23,7 +23,21 @@ void *injectorFunction(void *arg)
 
     DEBUG_PRINT("Performing the injection at time %lu...\n", currentTime);
     DEBUG_PRINT("Injection delay: %d (%d - %d) \n", ((signed) currentTime - (signed) data->injTime), (signed) currentTime, (signed) data->injTime);
-    *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
+    if (data->isList) {
+        List_t *list = (List_t*)data->address;
+        ListItem_t *item = list->pxIndex;
+        if (data->listPosition < list->uxNumberOfItems) {
+            for (int i = 0; i < data->listPosition && item; i++) {
+                item = item->pxNext;
+            }
+
+            if (item) {
+                *((char *)item + data->offsetByte) ^= (1 << data->offsetBit);        
+            }
+        }
+    } else {
+        *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
+    }
     DEBUG_PRINT("Injection completed\n");
 
     DEBUG_PRINT("Waiting the execution timeout\n");

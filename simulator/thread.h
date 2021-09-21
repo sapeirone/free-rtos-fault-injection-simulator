@@ -10,7 +10,12 @@ typedef struct thData_s
 {
     void *address;
     unsigned long injTime, timeoutNs, offsetByte, offsetBit;
-    int isList, index;
+
+    // lists only
+    int isList;
+    int listPosition;
+
+    target_t *target;
 } thData_t;
 
 int launchInjectorThread(void* (*function) (void*),

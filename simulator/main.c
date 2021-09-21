@@ -125,7 +125,7 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth);
  * 
  * @return an injection target (or NULL otherwise).
  */
-target_t *getInjectionTarget(target_t *target, const char *toSearch);
+thData_t *getInjectionTarget(target_t *target, const char *toSearch);
 
 static void runSimulator(const thData_t *injectionArgs);
 static void writeGoldenFile();
@@ -256,9 +256,9 @@ static void execCmdRun(int argc, char **argv)
 	unsigned long offsetByte = atol(argv[4]);
 	unsigned long offsetBit = atol(argv[5]);
 
-	target_t *injTarget = getInjectionTarget(targets, argv[2]);
+	thData_t *injection = getInjectionTarget(targets, argv[2]);
 
-	if (!injTarget)
+	if (!injection)
 	{
 		ERR_PRINT("Cannot find the injection target %s\n", argv[2]);
 
@@ -267,16 +267,14 @@ static void execCmdRun(int argc, char **argv)
 	}
 
 	// create a wrapper for the injection parameters
-	thData_t injection;
-	injection.address = injTarget->address;
-	injection.injTime = injTime;
-	injection.offsetByte = offsetByte;
-	injection.offsetBit = offsetBit;
-	injection.timeoutNs = 3 * goldenExecTime;
+	injection->injTime = injTime;
+	injection->offsetByte = offsetByte;
+	injection->offsetBit = offsetBit;
+	injection->timeoutNs = 3 * goldenExecTime;
 
 	runSimulator(&injection);
 
-	free(injTarget);
+	free(injection);
 }
 
 static void execCmdGolden(int argc, char **argv)
@@ -424,22 +422,30 @@ static void execInjectionCampaign(int argc, char **argv)
 				printProgressBar(((double)nCurrentInjection / nTotalInjections));
 			}
 
-			target_t *injTarget = getInjectionTarget(targets, campaign->targetStructure);
-			if (injTarget == NULL)
+			thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
+			if (inj == NULL)
 			{
 				ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
+			target_t *injTarget = inj->target;
+
 			// verify the median injection time does not exceed the
 			// execution time of the golden simulation
 			if (campaign->medTimeRange > nanoGoldenEx)
 			{
-				fprintf(stderr, "Invalid injection time for target %s\n", campaign->targetStructure);
+				ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
 				exit(GENERIC_ERROR_EXIT_CODE);
 			}
 
-			unsigned long offsetByte = rand() % injTarget->size; //select byte to inject
+			unsigned long offsetByte;
+			if (inj->isList) {
+				offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
+			} else {
+				offsetByte = rand() % injTarget->size; //select byte to inject
+			}
+			
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
 
@@ -513,7 +519,7 @@ static void execInjectionCampaign(int argc, char **argv)
 				break;
 			case EXECUTION_RESULT_CRASH_EXIT_CODE:
 			default:
-				printf("%u\n", exitCode);
+				// printf("%u\n", exitCode);
 				campaign->res.nCrash++;
 			}
 		}
@@ -754,14 +760,13 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 	}
 }
 
-target_t *getInjectionTarget(target_t *list, const char *toSearch)
+thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 {
-	if (!list || !toSearch)
-	{
+	if (!list || !toSearch) {
 		// invalid parameters
 		return NULL;
 	}
-
+	
 	char *copyToSearch = strdup(toSearch);
 	// split the query string and extract parent and child references
 	char *parentNode = NULL, *childNode = NULL;
@@ -802,15 +807,45 @@ target_t *getInjectionTarget(target_t *list, const char *toSearch)
 		{
 			// the strings are matching
 
+			unsigned long address;
+			if (IS_TYPE_POINTER(tmp->type))
+			{
+				address = (unsigned long)*((void **)tmp->address);
+			}
+
+			if (IS_TYPE_ARRAY(tmp->type) && index1 >= 0)
+			{
+				address = address + (tmp->size * index1);
+			}
+
+			if (IS_TYPE_LIST(tmp->type) && *childNode)
+			{
+				// unsupported
+				free(copyToSearch);
+				return NULL;
+			}
+
 			if (!(*childNode))
 			{
 				// no child reference specified => return the current node
 
-				target_t *retValue = (target_t *)malloc(sizeof(target_t));
-				memmove(retValue, tmp, sizeof(target_t));
+				thData_t *data = (thData_t*) malloc(sizeof(thData_t));
+
+				if (IS_TYPE_LIST(tmp->type)) {
+					// todo: set isList and index 
+					data->isList = 1;
+					if (IS_TYPE_ARRAY(tmp->type)) {
+						data->listPosition = index2;
+					} else {
+						data->listPosition = index1;
+					}
+				}
+
+				data->address = (void*) address;
+				data->target = tmp;
 
 				free(copyToSearch);
-				return retValue;
+				return data;
 			}
 
 			// child reference specified => look for a matching child node
@@ -818,18 +853,26 @@ target_t *getInjectionTarget(target_t *list, const char *toSearch)
 			{
 				if (strcmp(child->name, childNode) == 0)
 				{
-					// the address of the child is relative to
-					// the start of its parent
-					target_t *retValue = (target_t *)malloc(sizeof(target_t));
-					memmove(retValue, child, sizeof(target_t));
+					thData_t *data = (thData_t*) malloc(sizeof(thData_t));
 
-					// recompute the address
-					retValue->address = (void *)((unsigned long)tmp->address + (unsigned long)child->address);
-					// rewrite the full name
-					sprintf(retValue->name, "%s.%s", tmp->name, child->name);
+					unsigned long address;
+					if (IS_TYPE_ARRAY(child->type) && index2 >= 0)
+					{
+						address = address + (child->size * index2);
+					}
+
+					data->address = (void*) address;
+
+					if (IS_TYPE_LIST(child->type) && *childNode)
+					{
+						data->isList = 1;
+						data->listPosition = index1;
+					}
+
+					data->target = child;
 
 					free(copyToSearch);
-					return retValue;
+					return data;
 				}
 			}
 		}
