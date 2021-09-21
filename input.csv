@@ -11,3 +11,5 @@ xTasksWaitingTermination,50,20000000,5000,g
 uxDeletedTasksWaitingCleanUp,50,20000000,5000,u
 xActiveTimerList1,50,20000000,5000,u
 xYieldPending,50,20000000,5000,t
+pxCurrentTCB.pxTopOfStack,50,20000000,5000,u
+pxCurrentTCB.uxPriority,50,20000000,5000,u
