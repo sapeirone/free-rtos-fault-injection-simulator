@@ -1125,27 +1125,27 @@
 
 target_t * read_timer_targets(target_t *target) {
     // static List_t xActiveTimerList1;
-    APPEND_TARGET(target, xActiveTimerList1, TYPE_LIST);
+    APPEND_TARGET(target, xActiveTimerList1, TYPE_LIST, NULL);
 
     // static List_t xActiveTimerList2;
-    APPEND_TARGET(target, xActiveTimerList2, TYPE_LIST);
+    APPEND_TARGET(target, xActiveTimerList2, TYPE_LIST, NULL);
     
     // static List_t * pxCurrentTimerList;
-    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER);
+    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER, NULL);
 
     // static List_t * pxCurrentTimerList;
-    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER);
+    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER, NULL);
 
     // static List_t * pxOverflowTimerList;
-    APPEND_TARGET(target, pxOverflowTimerList, TYPE_LIST | TYPE_POINTER);
+    APPEND_TARGET(target, pxOverflowTimerList, TYPE_LIST | TYPE_POINTER, NULL);
 
     // static QueueHandle_t xTimerQueue;
     // initialized in prvCheckForValidListAndQueue (timers.c)
-    APPEND_TARGET(target, xTimerQueue, TYPE_VARIABLE);
+    APPEND_TARGET(target, xTimerQueue, TYPE_VARIABLE, NULL);
     
     // static TaskHandle_t xTimerTaskHandle;
     // initialized in xTimerCreateTimerTask (timers.c)
-    APPEND_TARGET(target, xTimerTaskHandle, TYPE_VARIABLE);
+    APPEND_TARGET(target, xTimerTaskHandle, TYPE_VARIABLE, NULL);
 
     return target;
 }

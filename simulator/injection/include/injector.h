@@ -56,6 +56,7 @@ struct target_s
     unsigned int size;  // size of an element
     unsigned int nmemb; // number of elements (only for arrays)
     unsigned int type;
+    struct target_s *parent;
     struct target_s *content;
     struct target_s *next;
 };
@@ -73,7 +74,8 @@ target_t *read_tasks_targets(target_t *list);
 target_t *read_timer_targets(target_t *list);
 
 target_t *create_target(const char *name, void *address, target_type_t type,
-                        unsigned int size, target_t *content, target_t *next, unsigned int nmemb);
+                        unsigned int size, target_t *content, target_t *next, 
+                        target_t *parent, unsigned int nmemb);
 
 void pretty_print_target_type(unsigned int type, char *buffer);
 
@@ -83,15 +85,15 @@ void freeInjectionTargets(target_t *target);
 #define nameof(var) (strrchr(#var, '>') ? (1 + strrchr(#var, '>')) : #var)
 
 // append a fault injection target with a nmemb value different from 1
-#define APPEND_ARRAY_TARGET(target, var, type, nmemb)                                                                          \
+#define APPEND_ARRAY_TARGET(target, var, type, parent, nmemb)                                                                          \
     {                                                                                                                          \
-        target = create_target(nameof(var), (void *)&(var), type, sizeof(var[0]), NULL, target, sizeof(var) / sizeof(var[0])); \
+        target = create_target(nameof(var), (void *)&(var), type, sizeof(var[0]), NULL, target, parent, sizeof(var) / sizeof(var[0])); \
     };
 
 // append a fault injection target
-#define APPEND_TARGET(target, var, type)                                                         \
+#define APPEND_TARGET(target, var, type, parent)                                                 \
     {                                                                                            \
-        target = create_target(nameof(var), (void *)&(var), type, sizeof(var), NULL, target, 1); \
+        target = create_target(nameof(var), (void *)&(var), type, sizeof(var), NULL, target, parent, 1); \
     };
 
 void* injectorFunction(void *arg);
