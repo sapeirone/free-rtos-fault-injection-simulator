@@ -8,7 +8,7 @@ xTimerTaskHandle,50,20000000,5000,u
 xTimerQueue,50,20000000,5000,u
 xNextTaskUnblockTime,50,20000000,5000,u
 xTasksWaitingTermination,50,20000000,5000,g
-uxDeletedTasksWaitingCleanUp,50,20000000,5000,u
+uxDeletedTasksWaitingCleanUp,50,20000000,5000,u  #test comment
 xActiveTimerList1,50,20000000,5000,u
 xYieldPending,50,20000000,5000,t
 pxCurrentTCB.pxTopOfStack,50,20000000,5000,u

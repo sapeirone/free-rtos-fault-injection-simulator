@@ -50,7 +50,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "sleep.h"
-#include "re.h"
 
 #include "simulator.h"
 #include "benchmark/benchmark.h"
@@ -310,10 +309,12 @@ static void execInjectionCampaign(int argc, char **argv)
 	char choice = '0';
 	int pgBarEnabled = 1;
 
-	if ((argc > 3 && strcmp(argv[3], "-y") == 0) || (argc > 4 && strcmp(argv[4], "-y") == 0)) {
+	if ((argc > 3 && strcmp(argv[3], "-y") == 0) || (argc > 4 && strcmp(argv[4], "-y") == 0))
+	{
 		choice = 'y';
 	}
-	if ((argc > 3 && strcmp(argv[3], "--no-pg-bar") == 0) || (argc > 4 && strcmp(argv[4], "--no-pg-bar") == 0)) {
+	if ((argc > 3 && strcmp(argv[3], "--no-pg-bar") == 0) || (argc > 4 && strcmp(argv[4], "--no-pg-bar") == 0))
+	{
 		pgBarEnabled = 0;
 	}
 
@@ -417,9 +418,10 @@ static void execInjectionCampaign(int argc, char **argv)
 			nCurrentInjection++;
 			DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
 
-			if (pgBarEnabled) {
+			if (pgBarEnabled)
+			{
 				/* Progress bar */
-				printProgressBar(((double) nCurrentInjection / nTotalInjections));
+				printProgressBar(((double)nCurrentInjection / nTotalInjections));
 			}
 
 			target_t *injTarget = getInjectionTarget(targets, campaign->targetStructure);
@@ -449,27 +451,29 @@ static void execInjectionCampaign(int argc, char **argv)
 			case 'g':
 
 				//gaussian distribution approximated starting from the Irwin-Hall distribution
-				for(int gaussian = 0; gaussian < 12; ++gaussian){
+				for (int gaussian = 0; gaussian < 12; ++gaussian)
+				{
 					total += rand() % 1000;
 				}
-				total = (total-6000)/1000;
+				total = (total - 6000) / 1000;
 
-				injTime=total*campaign->variance/6 + campaign->medTimeRange;
-				
+				injTime = total * campaign->variance / 6 + campaign->medTimeRange;
+
 				break;
 
 			case 't':
 
 				//triangular distribution
-				for(int gaussian = 0; gaussian < 12; ++gaussian){
+				for (int gaussian = 0; gaussian < 12; ++gaussian)
+				{
 					total += rand() % 1000;
 				}
-				total = (total-1000)/1000;
+				total = (total - 1000) / 1000;
 
-				injTime=total*campaign->variance + campaign->medTimeRange;
-				
+				injTime = total * campaign->variance + campaign->medTimeRange;
+
 				break;
-				
+
 			case 'u':
 			default:
 				injTime = campaign->medTimeRange;
@@ -602,12 +606,13 @@ void vApplicationTickHook(void)
 	functions can be used (those that end in FromISR()). */
 
 #ifdef WIN32
-int eventIsSet = 1;
+	int eventIsSet = 1;
 
-	if((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime)) {
-        //fprintf(stdout, "isGolden = %d eventIsSet = %d runTimeCounterValue = %lu injTime = %lu\n", isGolden, eventIsSet, runTimeCounterValue, injTime);
+	if ((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime))
+	{
+		//fprintf(stdout, "isGolden = %d eventIsSet = %d runTimeCounterValue = %lu injTime = %lu\n", isGolden, eventIsSet, runTimeCounterValue, injTime);
 		wakeInjector();
-    }
+	}
 #endif
 }
 /*-----------------------------------------------------------*/
@@ -737,7 +742,8 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 	fprintf(output, fmt, target->name, target->address, target->size, target->nmemb, typeBuffer);
 
 	// recursively call printInjectionTarget over the target's children, if any
-	if (target->content) {
+	if (target->content)
+	{
 		printInjectionTarget(output, target->content, depth + 1);
 	}
 
@@ -750,27 +756,44 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 
 target_t *getInjectionTarget(target_t *list, const char *toSearch)
 {
-//	if (!list || !toSearch) {
-//		// invalid parameters
-//		return NULL;
-//	}
-//
+	if (!list || !toSearch)
+	{
+		// invalid parameters
+		return NULL;
+	}
+
 	char *copyToSearch = strdup(toSearch);
-//	// split the query string and extract parent and child references
+	// split the query string and extract parent and child references
 	char *parentNode = NULL, *childNode = NULL;
 	parentNode = strtok_s(copyToSearch, ".", &childNode);
-//
-//	if (!parentNode) {
-//		// invalid toSearch string
-//		free(copyToSearch);
-//		return NULL;
-//	}
 
-int match = 0;
+	if (!parentNode)
+	{
+		// invalid toSearch string
+		free(copyToSearch);
+		return NULL;
+	}
+	char *rest = NULL, *tok = NULL;
+	int index1 = 0, index2 = 0;
 
-if(re_match("[_a-zA-Z0-9]+ . [_a-zA-Z0-9]+ , [0-9]+, [0-9]+, [0-9]+, (g|t|u)", copyToSearch, &match)!=-1){
-	parentNode = strtok_s(copyToSearch, ".", &childNode);
-}
+	parentNode = strtok_s(parentNode, "[", &rest);
+
+	if (*rest != '\0' && rest!=NULL)
+	{
+		sscanf(rest, "%d", &index1);
+		tok = strtok_s(rest, "[", &rest);
+	}
+
+	if (*rest != '\0' && rest!=NULL)
+		sscanf(rest, "%d", &index2);
+
+
+	if (childNode != NULL && childNode[0]!='\0')
+	{
+		childNode = strtok_s(childNode, "[", &rest);
+		if (rest != '\0' && rest!=NULL)
+			sscanf(rest, "%d", &index2);
+	}
 
 	target_t *tmp = list;
 	while (tmp)
@@ -810,7 +833,7 @@ if(re_match("[_a-zA-Z0-9]+ . [_a-zA-Z0-9]+ , [0-9]+, [0-9]+, [0-9]+, (g|t|u)", c
 				}
 			}
 		}
-		
+
 		// iterate
 		tmp = tmp->next;
 	}
@@ -890,7 +913,7 @@ static void runSimulator(const thData_t *injectionArgs)
 	if (traceOutputIsCorrect())
 	{ // Correct Trace output, ISR worked
 		if (executionResultIsCorrect())
-		{ // Execution result is correct
+		{										  // Execution result is correct
 			if (execTime < (1.05 * nanoGoldenEx)) // Silent execution, correct output
 			{
 				exit(EXECUTION_RESULT_SILENT_EXIT_CODE);
@@ -1026,15 +1049,18 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 
 		// read the number of injections
 		token = strtok_s(rest, ",", &rest);
-		campaign->nInjections = atol(token);
+		if (atol(token) >= 0)
+			campaign->nInjections = atol(token);
 
 		// read the injection time
 		token = strtok_s(rest, ",", &rest);
-		campaign->medTimeRange = atol(token);
+		if (atol(token) >= 0)
+			campaign->medTimeRange = atol(token);
 
 		// read the injection time variance
 		token = strtok_s(rest, ",", &rest);
-		campaign->variance = atol(token);
+		if (atol(token) >= 0)
+			campaign->variance = atol(token);
 
 		// read the distribution
 		token = strtok_s(rest, ",", &rest);
@@ -1049,22 +1075,25 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	return index;
 }
 
-static void printProgressBar(double percentage){
+static void printProgressBar(double percentage)
+{
 	double barLen = 40;
 	static int rot = 0;
 	fprintf(stdout, "\r                                                   \r");
 	fprintf(stdout, "[");
-	for(double i = 0; i < barLen; ++i){
-		if(i < barLen * percentage)
+	for (double i = 0; i < barLen; ++i)
+	{
+		if (i < barLen * percentage)
 			fprintf(stdout, "#");
 		else
 			fprintf(stdout, " ");
 	}
-	if(percentage == 1)
+	if (percentage == 1)
 		fprintf(stdout, "] %.0f%%\n", 100 * percentage);
 	else
 	{
-		switch(rot){
+		switch (rot)
+		{
 		case 0:
 			fprintf(stdout, "] %.0f%% |", 100 * percentage);
 			rot++;
@@ -1083,9 +1112,9 @@ static void printProgressBar(double percentage){
 			break;
 		}
 	}
-	#if defined(DEBUG) || defined(OUTPUT_VERBOSE)
+#if defined(DEBUG) || defined(OUTPUT_VERBOSE)
 	fprintf(stdout, "\n");
-	#endif
+#endif
 }
 
 /**
@@ -1131,7 +1160,8 @@ static void printMany(FILE *fp, char c, int number)
 	}
 }
 
-static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns){
+static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns)
+{
 	printMany(stdout, '-', 115);
 	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
 			"Target", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
