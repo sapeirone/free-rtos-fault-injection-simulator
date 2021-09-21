@@ -734,11 +734,12 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 	const char *fmt = "%-30s (address: 0x%08x, size: %2d B, nmemb: %d, type: %s)\n";
 	fprintf(output, fmt, target->name, target->address, target->size, target->nmemb, typeBuffer);
 
-	for (target_t *child = target->content; child; child = child->next)
-	{
-		printInjectionTarget(output, child, depth + 1);
+	// recursively call printInjectionTarget over the target's children, if any
+	if (target->content) {
+		printInjectionTarget(output, target->content, depth + 1);
 	}
 
+	// recursively call printInjectionTarget over the next target
 	if (target->next)
 	{
 		printInjectionTarget(output, target->next, depth);
