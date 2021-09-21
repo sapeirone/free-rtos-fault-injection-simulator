@@ -68,6 +68,7 @@ list(APPEND sources ${SIMULATOR_DIR}/main_blinky.c)
 list(APPEND sources ${SIMULATOR_DIR}/loggingUtils.c)
 list(APPEND sources ${SIMULATOR_DIR}/benchmark/benchmark.c)
 list(APPEND sources ${SIMULATOR_DIR}/injection/injection.c)
+list(APPEND sources ${SIMULATOR_DIR}/re.c)
 
 if (UNIX) 
     # posix-dependent source code

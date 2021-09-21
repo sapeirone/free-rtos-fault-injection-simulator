@@ -50,6 +50,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "sleep.h"
+#include "re.h"
 
 #include "simulator.h"
 #include "benchmark/benchmark.h"
@@ -748,21 +749,27 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 
 target_t *getInjectionTarget(target_t *list, const char *toSearch)
 {
-	if (!list || !toSearch) {
-		// invalid parameters
-		return NULL;
-	}
-
+//	if (!list || !toSearch) {
+//		// invalid parameters
+//		return NULL;
+//	}
+//
 	char *copyToSearch = strdup(toSearch);
-	// split the query string and extract parent and child references
+//	// split the query string and extract parent and child references
 	char *parentNode = NULL, *childNode = NULL;
 	parentNode = strtok_s(copyToSearch, ".", &childNode);
+//
+//	if (!parentNode) {
+//		// invalid toSearch string
+//		free(copyToSearch);
+//		return NULL;
+//	}
 
-	if (!parentNode) {
-		// invalid toSearch string
-		free(copyToSearch);
-		return NULL;
-	}
+int match = 0;
+
+if(re_match("[_a-zA-Z0-9]+ . [_a-zA-Z0-9]+ , [0-9]+, [0-9]+, [0-9]+, (g|t|u)", copyToSearch, &match)!=-1){
+	parentNode = strtok_s(copyToSearch, ".", &childNode);
+}
 
 	target_t *tmp = list;
 	while (tmp)
