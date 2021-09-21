@@ -111,6 +111,20 @@ static void printApplicationArguments(int argc, char **argv);
 
 static void printInjectionTarget(FILE *output, target_t *target, int depth);
 
+/**
+ * Scan the injection targets list and return the matching one.
+ * The returned value is allocated on the heap and must be properly
+ * freed after use.
+ * 
+ * Example of valid toSearch strings:
+ *  - xYieldPending
+ *  - pxCurrentTCB.uxPriority
+ * 
+ * @param target_t *target is the list of available targets
+ * @param char *toSearch is the query string to look for
+ * 
+ * @return an injection target (or NULL otherwise).
+ */
 target_t *getInjectionTarget(target_t *target, char *toSearch);
 
 static void runSimulator(const thData_t *injectionArgs);
@@ -261,6 +275,8 @@ static void execCmdRun(int argc, char **argv)
 	injection.timeoutNs = 3 * goldenExecTime;
 
 	runSimulator(&injection);
+
+	free(injTarget);
 }
 
 static void execCmdGolden(int argc, char **argv)
@@ -729,27 +745,59 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 	}
 }
 
-target_t *getInjectionTarget(target_t *target, char *toSearch)
+target_t *getInjectionTarget(target_t *list, char *toSearch)
 {
+	if (!list || !toSearch) {
+		// invalid parameters
+		return NULL;
+	}
 
-	target_t *tmp = target;
-	while (tmp->next != NULL)
+	// split the query string and extract parent and child references
+	char *parentNode = NULL, *childNode = NULL;
+	parentNode = strtok_s(toSearch, ".", &childNode);
+
+	if (!parentNode) {
+		// invalid toSearch string
+		return NULL;
+	}
+
+	target_t *tmp = list;
+	while (tmp)
 	{
-		if (strcmp(tmp->name, toSearch) == 0)
+		if (strcmp(tmp->name, parentNode) == 0)
 		{
-			return tmp;
-		}
+			// the strings are matching
 
-		for (target_t *child = tmp->content; child; child = child->next)
-		{
-			if (strcmp(tmp->name, toSearch) == 0)
+			if (!childNode)
 			{
-				return tmp;
+				// no child reference specified => return the current node
+
+				target_t *retValue = (target_t *)malloc(sizeof(target_t));
+				memmove(retValue, tmp, sizeof(target_t));
+				return retValue;
+			}
+
+			// child reference specified => look for a matching child node
+			for (target_t *child = tmp->content; child; child = child->next)
+			{
+				if (strcmp(child->name, childNode) == 0)
+				{
+					// the address of the child is relative to
+					// the start of its parent
+					target_t *retValue = (target_t *)malloc(sizeof(target_t));
+					memmove(retValue, child, sizeof(target_t));
+					retValue->address = (void *)((unsigned long)tmp->address + (unsigned long)child->address);
+
+					return retValue;
+				}
 			}
 		}
+		
+		// iterate
 		tmp = tmp->next;
 	}
 
+	// no target found
 	return NULL;
 }
 
