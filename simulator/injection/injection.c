@@ -22,7 +22,7 @@ void *injectorFunction(void *arg)
     unsigned long long currentTime = ulGetRunTimeCounterValue();
 
     DEBUG_PRINT("Performing the injection at time %lu...\n", currentTime);
-    printf("\tInjection delay: %d (%d - %d) \n", ((signed) currentTime - (signed) data->injTime), (signed) currentTime, (signed) data->injTime);
+    DEBUG_PRINT("\tInjection delay: %d (%d - %d) \n", ((signed) currentTime - (signed) data->injTime), (signed) currentTime, (signed) data->injTime);
     *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
     DEBUG_PRINT("Injection completed\n");
 

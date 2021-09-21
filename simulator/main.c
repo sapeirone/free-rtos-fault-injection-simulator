@@ -769,7 +769,7 @@ target_t *getInjectionTarget(target_t *list, char *toSearch)
 		{
 			// the strings are matching
 
-			if (!childNode)
+			if (!(*childNode))
 			{
 				// no child reference specified => return the current node
 
