@@ -218,8 +218,9 @@ sigset_t xSignals;
 
     /* Cancel the Idle task and free its resources */
 #if ( INCLUDE_xTaskGetIdleTaskHandle == 1 )
-    // vTaskSuspend(xTaskGetIdleTaskHandle());
-    // vPortCancelThread( xTaskGetIdleTaskHandle() );
+    //vTaskSuspend(xTaskGetIdleTaskHandle());
+    //vPortCancelThread( xTaskGetIdleTaskHandle() );
+    vTaskDelete(xTaskGetIdleTaskHandle());
 #endif
 
 #if ( configUSE_TIMERS == 1 )
