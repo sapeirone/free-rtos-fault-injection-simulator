@@ -5,7 +5,7 @@
 #define OUTPUT_VERBOSE
 #undef OUTPUT_VERBOSE
 
-#define GOLDEN_FILE_PATH "golden.txt"
+#define GOLDEN_FILE_PATH "tmp/golden.txt"
 int isGolden;
 
 #include "FreeRTOS.h"

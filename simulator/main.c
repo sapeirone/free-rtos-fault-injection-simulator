@@ -422,82 +422,82 @@ static void execInjectionCampaign(int argc, char **argv)
 				printProgressBar(((double)nCurrentInjection / nTotalInjections));
 			}
 
-			thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
-			if (inj == NULL)
-			{
-				ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
-				exit(GENERIC_ERROR_EXIT_CODE);
-			}
-
-			target_t *injTarget = inj->target;
-
-			// verify the median injection time does not exceed the
-			// execution time of the golden simulation
-			if (campaign->medTimeRange > nanoGoldenEx)
-			{
-				ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
-				exit(GENERIC_ERROR_EXIT_CODE);
-			}
-
-			unsigned long offsetByte;
-			if (inj->isList) {
-				offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
-			} else {
-				offsetByte = rand() % injTarget->size; //select byte to inject
-			}
-			
-			unsigned long offsetBit = rand() % 8;				 //select bit to inject
-			unsigned long injTime;
-
-			double total = 0;
-
-			// pick a distribution
-			switch (campaign->distribution)
-			{
-			case 'g':
-
-				//gaussian distribution approximated starting from the Irwin-Hall distribution
-				for (int gaussian = 0; gaussian < 12; ++gaussian)
+				thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
+				if (inj == NULL)
 				{
-					total += rand() % 1000;
+					ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
+					exit(GENERIC_ERROR_EXIT_CODE);
 				}
-				total = (total - 6000) / 1000;
 
-				injTime = total * campaign->variance / 6 + campaign->medTimeRange;
+				target_t *injTarget = inj->target;
 
-				break;
-
-			case 't':
-
-				//triangular distribution
-				for (int gaussian = 0; gaussian < 12; ++gaussian)
+				// verify the median injection time does not exceed the
+				// execution time of the golden simulation
+				if (campaign->medTimeRange > nanoGoldenEx)
 				{
-					total += rand() % 1000;
+					ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
+					exit(GENERIC_ERROR_EXIT_CODE);
 				}
-				total = (total - 1000) / 1000;
 
-				injTime = total * campaign->variance + campaign->medTimeRange;
+				unsigned long offsetByte;
+				if (inj->isList) {
+					offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
+				} else {
+					offsetByte = rand() % injTarget->size; //select byte to inject
+				}
+				
+				unsigned long offsetBit = rand() % 8;				 //select bit to inject
+				unsigned long injTime;
 
-				break;
+				double total = 0;
 
-			case 'u':
-			default:
-				injTime = campaign->medTimeRange;
+				// pick a distribution
+				switch (campaign->distribution)
+				{
+				case 'g':
 
-				// compute the width of the injection time range
-				int lowerWidth = min(campaign->medTimeRange, campaign->variance);
-				int upperWidth = min(campaign->variance, nanoGoldenEx - campaign->medTimeRange);
-				int range = max(1, lowerWidth + upperWidth);
-				injTime = (rand() % range) - lowerWidth + (signed)campaign->medTimeRange;
-			}
+					//gaussian distribution approximated starting from the Irwin-Hall distribution
+					for (int gaussian = 0; gaussian < 12; ++gaussian)
+					{
+						total += rand() % 1000;
+					}
+					total = (total - 6000) / 1000;
 
-			freeRTOSInstance instance;
-			int ret = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
-			if (ret < 0)
-			{
-				ERR_PRINT("Couldn't create child process.\n");
-				exit(GENERIC_ERROR_EXIT_CODE);
-			}
+					injTime = total * campaign->variance / 6 + campaign->medTimeRange;
+
+					break;
+
+				case 't':
+
+					//triangular distribution
+					for (int gaussian = 0; gaussian < 12; ++gaussian)
+					{
+						total += rand() % 1000;
+					}
+					total = (total - 1000) / 1000;
+
+					injTime = total * campaign->variance + campaign->medTimeRange;
+
+					break;
+
+				case 'u':
+				default:
+					injTime = campaign->medTimeRange;
+
+					// compute the width of the injection time range
+					int lowerWidth = min(campaign->medTimeRange, campaign->variance);
+					int upperWidth = min(campaign->variance, nanoGoldenEx - campaign->medTimeRange);
+					int range = max(1, lowerWidth + upperWidth);
+					injTime = (rand() % range) - lowerWidth + (signed)campaign->medTimeRange;
+				}
+
+				freeRTOSInstance instance;
+				int ret = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
+				if (ret < 0)
+				{
+					ERR_PRINT("Couldn't create child process.\n");
+					exit(GENERIC_ERROR_EXIT_CODE);
+				}
 
 			// Father process
 			unsigned int exitCode = waitFreeRTOSInjection(&instance);
@@ -1036,7 +1036,7 @@ static void writeGoldenFile()
 	unsigned long goldenTime = ulGetRunTimeCounterValue();
 	DEBUG_PRINT("Golden execution time: %lu.\n", goldenTime);
 
-	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "w");
+	FILE *goldenfp = fopen(GOLDEN_FILE_PATH, "a"); // previous was "w"
 	if (goldenfp == NULL)
 	{
 		ERR_PRINT("Couldn't open %s for writing.\n", GOLDEN_FILE_PATH);
@@ -1044,10 +1044,11 @@ static void writeGoldenFile()
 	}
 
 	fprintf(goldenfp, "%lu\n", goldenTime);
+	/*
 	for (int i = 0; i < MAXARRAY; i++)
 	{
 		fprintf(goldenfp, "%s\n", array[i].qstring);
-	}
+	}*/
 	fclose(goldenfp);
 }
 
