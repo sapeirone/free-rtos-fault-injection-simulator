@@ -91,6 +91,12 @@ void freeInjectionTargets(target_t *target);
     };
 
 // append a fault injection target
+#define APPEND_PTR_TARGET(target, var, type, parent)                                                 \
+    {                                                                                            \
+        target = create_target(nameof(var), (void *)&(var), type | TYPE_POINTER, sizeof(*var), NULL, target, parent, 1); \
+    };
+
+// append a fault injection target
 #define APPEND_TARGET(target, var, type, parent)                                                 \
     {                                                                                            \
         target = create_target(nameof(var), (void *)&(var), type, sizeof(var), NULL, target, parent, 1); \

@@ -5451,10 +5451,10 @@ target_t * read_tasks_targets(target_t *target) {
     APPEND_TARGET(target, xDelayedTaskList2, TYPE_LIST, NULL);
 
     // PRIVILEGED_DATA static List_t * volatile pxDelayedTaskList;
-    APPEND_TARGET(target, pxDelayedTaskList, TYPE_LIST | TYPE_POINTER, NULL);
+    APPEND_PTR_TARGET(target, pxDelayedTaskList, TYPE_LIST, NULL);
 
     // PRIVILEGED_DATA static List_t * volatile pxOverflowDelayedTaskList;
-    APPEND_TARGET(target, pxOverflowDelayedTaskList, TYPE_LIST | TYPE_POINTER, NULL);
+    APPEND_PTR_TARGET(target, pxOverflowDelayedTaskList, TYPE_LIST, NULL);
 
     // PRIVILEGED_DATA static List_t xPendingReadyList;
     APPEND_TARGET(target, xPendingReadyList, TYPE_LIST, NULL);
@@ -5512,10 +5512,10 @@ target_t * read_tasks_targets(target_t *target) {
 
 static target_t* read_TCB_targets(target_t *target) {
 
-    APPEND_TARGET(target, pxCurrentTCB, TYPE_STRUCT | TYPE_POINTER, NULL);
+    APPEND_PTR_TARGET(target, pxCurrentTCB, TYPE_STRUCT, NULL);
 
     // volatile StackType_t * pxTopOfStack;
-    APPEND_TARGET(target->content, pxCurrentTCB->pxTopOfStack, TYPE_VARIABLE | TYPE_POINTER, target);
+    APPEND_PTR_TARGET(target->content, pxCurrentTCB->pxTopOfStack, TYPE_VARIABLE, target);
 
     #if ( portUSING_MPU_WRAPPERS == 1 )
         // xMPU_SETTINGS xMPUSettings;
@@ -5532,7 +5532,7 @@ static target_t* read_TCB_targets(target_t *target) {
     APPEND_TARGET(target->content, pxCurrentTCB->uxPriority, TYPE_VARIABLE, target);
     
     // StackType_t * pxStack;
-    APPEND_TARGET(target->content, pxCurrentTCB->pxStack, TYPE_VARIABLE | TYPE_POINTER, target);
+    APPEND_PTR_TARGET(target->content, pxCurrentTCB->pxStack, TYPE_VARIABLE, target);
 
     // char pcTaskName[ configMAX_TASK_NAME_LEN ];
     APPEND_TARGET(target->content, pxCurrentTCB->pcTaskName, TYPE_VARIABLE, target);
@@ -5566,11 +5566,6 @@ static target_t* read_TCB_targets(target_t *target) {
     #if ( configUSE_APPLICATION_TASK_TAG == 1 )
         // TaskHookFunction_t pxTaskTag;
         APPEND_TARGET(target->content, pxCurrentTCB->pxTaskTag, TYPE_VARIABLE, target);
-    #endif
-
-    #if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0 )
-        // void * pvThreadLocalStoragePointers[ configNUM_THREAD_LOCAL_STORAGE_POINTERS ];
-        APPEND_ARRAY_TARGET(target->content, pxCurrentTCB->pvThreadLocalStoragePointers, TYPE_POINTER, NULL, configNUM_THREAD_LOCAL_STORAGE_POINTERS);
     #endif
 
     #if ( configGENERATE_RUN_TIME_STATS == 1 )

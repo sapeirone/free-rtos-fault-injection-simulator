@@ -1131,13 +1131,13 @@ target_t * read_timer_targets(target_t *target) {
     APPEND_TARGET(target, xActiveTimerList2, TYPE_LIST, NULL);
     
     // static List_t * pxCurrentTimerList;
-    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER, NULL);
+    APPEND_PTR_TARGET(target, pxCurrentTimerList, TYPE_LIST, NULL);
 
     // static List_t * pxCurrentTimerList;
-    APPEND_TARGET(target, pxCurrentTimerList, TYPE_LIST | TYPE_POINTER, NULL);
+    APPEND_PTR_TARGET(target, pxCurrentTimerList, TYPE_LIST, NULL);
 
     // static List_t * pxOverflowTimerList;
-    APPEND_TARGET(target, pxOverflowTimerList, TYPE_LIST | TYPE_POINTER, NULL);
+    APPEND_PTR_TARGET(target, pxOverflowTimerList, TYPE_LIST, NULL);
 
     // static QueueHandle_t xTimerQueue;
     // initialized in prvCheckForValidListAndQueue (timers.c)
