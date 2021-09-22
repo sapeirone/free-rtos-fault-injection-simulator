@@ -2,6 +2,7 @@
 #define INJECTOR_THREAD_H
 
 #include "thread_internal.h"
+#include "injector.h"
 
 #define INJECTOR_THREAD_SUCCESS 1
 #define INJECTOR_THREAD_FAILURE -1

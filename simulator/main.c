@@ -272,7 +272,7 @@ static void execCmdRun(int argc, char **argv)
 	injection->offsetBit = offsetBit;
 	injection->timeoutNs = 3 * goldenExecTime;
 
-	runSimulator(&injection);
+	runSimulator(injection);
 
 	free(injection);
 }
@@ -500,7 +500,7 @@ static void execInjectionCampaign(int argc, char **argv)
 			}
 
 			freeRTOSInstance instance;
-			int ret = runFreeRTOSInjection(&instance, argv[0], injTarget->name, injTime, offsetByte, offsetBit);
+			int ret = runFreeRTOSInjection(&instance, argv[0], campaign->targetStructure, injTime, offsetByte, offsetBit);
 			if (ret < 0)
 			{
 				ERR_PRINT("Couldn't create child process.\n");
@@ -815,7 +815,7 @@ thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 		{
 			// the strings are matching
 
-			unsigned long address;
+			unsigned long address = tmp->address;
 			if (IS_TYPE_POINTER(tmp->type))
 			{
 				address = (unsigned long)*((void **)tmp->address);
@@ -838,6 +838,7 @@ thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 				// no child reference specified => return the current node
 
 				thData_t *data = (thData_t*) malloc(sizeof(thData_t));
+				memset(data, 0, sizeof(thData_t));
 
 				if (IS_TYPE_LIST(tmp->type)) {
 					// todo: set isList and index 
@@ -862,8 +863,9 @@ thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 				if (strcmp(child->name, childNode) == 0)
 				{
 					thData_t *data = (thData_t*) malloc(sizeof(thData_t));
+					memset(data, 0, sizeof(thData_t));
 
-					unsigned long address;
+					unsigned long address = child->address;
 					if (IS_TYPE_ARRAY(child->type) && index2 >= 0)
 					{
 						address = address + (child->size * index2);
