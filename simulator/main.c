@@ -465,6 +465,10 @@ static void execInjectionCampaign(int argc, char **argv)
 
 				injTime = total * campaign->variance / 6 + campaign->medTimeRange;
 
+				if(injTime<0){
+					injTime=injTime+campaign->variance/2;
+				}
+
 				break;
 
 			case 't':
@@ -477,6 +481,10 @@ static void execInjectionCampaign(int argc, char **argv)
 				total = (total - 1000) / 1000;
 
 				injTime = total * campaign->variance + campaign->medTimeRange;
+
+				if(injTime<0){
+					injTime=injTime+campaign->variance/2;
+				}
 
 				break;
 
