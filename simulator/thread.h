@@ -16,6 +16,10 @@ typedef struct thData_s
     int isList;
     int listPosition;
 
+    // pointers only
+    int isPointer;
+    void *offset;
+
     target_t *target;
 } thData_t;
 

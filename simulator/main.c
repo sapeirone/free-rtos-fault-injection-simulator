@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 #pragma warning(disable : 4996) // _CRT_SECURE_NO_WARNINGS
 
 /* FreeRTOS kernel includes. */
@@ -348,9 +349,9 @@ static void execInjectionCampaign(int argc, char **argv)
 	 */
 	fprintf(stdout, "\nEstimated execution times:\n");
 
-	printMany(stdout, '-', 104);
-	fprintf(stdout, "\n| %-30s | %8s | %10s | %5s | %5s | %12s | %12s |\n",
-			"Target", "nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
+	printMany(stdout, '-', 117);
+	fprintf(stdout, "\n| %-30s | %10s | %8s | %10s | %5s | %5s | %12s | %12s |\n",
+			"Target", "Time (ns)", "nExecs", "tMed", "var", "distr", "estTimeMin", "estTimeMax");
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -358,9 +359,10 @@ static void execInjectionCampaign(int argc, char **argv)
 		//300% of golden execution time, for each injection in the campaign
 		double estTimeMax = estTimeMin * 3.0;
 
-		printMany(stdout, '-', 104);
-		fprintf(stdout, "\n| %-30s | %8d | %10lu | %5lu | %5c | %10.2f s | %10.2f s |\n",
+		printMany(stdout, '-', 117);
+		fprintf(stdout, "\n| %-30s | %10d | %8d | %10lu | %5lu | %5c | %10.2f s | %10.2f s |\n",
 				injectionCampaigns[i].targetStructure,
+				injectionCampaigns[i].medTimeRange,
 				injectionCampaigns[i].nInjections,
 				injectionCampaigns[i].medTimeRange,
 				injectionCampaigns[i].variance,
@@ -372,9 +374,9 @@ static void execInjectionCampaign(int argc, char **argv)
 		nTotalInjections += injectionCampaigns[i].nInjections;
 	}
 
-	printMany(stdout, '-', 104);
-	fprintf(stdout, "\n%-30s     %8s   %10s   %5s   %5s   %10.2f s   %10.2f s \n\n",
-			"Total estimated time", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
+	printMany(stdout, '-', 117);
+	fprintf(stdout, "\n%-30s     %10s    %8s   %10s   %5s   %5s   %10.2f s   %10.2f s \n\n",
+			"Total estimated time", "-", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
 
 	// require user confirmation
 	while (choice != 'y' && choice != 'n')
@@ -442,10 +444,19 @@ static void execInjectionCampaign(int argc, char **argv)
 			unsigned long offsetByte;
 			if (inj->isList) {
 				offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
-			} else {
-				offsetByte = rand() % injTarget->size; //select byte to inject
+				DEBUG_PRINT("Selecting target as list item");
 			}
-			
+			else if (IS_TYPE_POINTER(inj->target->type) && !inj->isPointer)
+			{
+				offsetByte = rand() % (sizeof(void *)); //select byte to inject
+				DEBUG_PRINT("2: %d", sizeof(void *));
+			}
+			else
+			{
+				offsetByte = rand() % injTarget->size; //select byte to inject
+				DEBUG_PRINT("1: %d", injTarget->size);
+			}
+
 			unsigned long offsetBit = rand() % 8;				 //select bit to inject
 			unsigned long injTime;
 
@@ -768,45 +779,61 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 	}
 }
 
-thData_t *getInjectionTarget(target_t *list, const char *toSearch)
+thData_t *getInjectionTarget(target_t *list, const char *targetName)
 {
-	if (!list || !toSearch) {
+	if (!list || !targetName) {
 		// invalid parameters
 		return NULL;
 	}
 	
-	char *copyToSearch = strdup(toSearch);
+	char *_targetName = strdup(targetName);
 	// split the query string and extract parent and child references
 	char *parentNode = NULL, *childNode = NULL;
-	parentNode = strtok_s(copyToSearch, ".", &childNode);
+	parentNode = strtok_s(_targetName, ".", &childNode);
 
 	if (!parentNode)
 	{
 		// invalid toSearch string
-		free(copyToSearch);
+		free(_targetName);
 		return NULL;
 	}
+
 	char *rest = NULL, *tok = NULL;
-	int index1 = 0, index2 = 0;
+	int index1 = INT_MIN, index2 = INT_MIN;
+	int parentIsDereference = 0, childIsDereference = 0;
+	
+	// check if the parent node is expressed as a dereference 
+	if (parentNode[0] == '*') {
+		parentIsDereference = 1;
+		parentNode++; // skip the first character
+	}
 
 	parentNode = strtok_s(parentNode, "[", &rest);
 
-	if (*rest != '\0' && rest!=NULL)
+	if (*rest != '\0' && rest != NULL)
 	{
 		sscanf(rest, "%d", &index1);
 		tok = strtok_s(rest, "[", &rest);
 	}
 
-	if (*rest != '\0' && rest!=NULL)
+	if (*rest != '\0' && rest != NULL)
 		sscanf(rest, "%d", &index2);
 
-
-	if (childNode != NULL && childNode[0]!='\0')
+	if (childNode != NULL && childNode[0] != '\0')
 	{
 		childNode = strtok_s(childNode, "[", &rest);
-		if (rest != '\0' && rest!=NULL)
+		if (*rest != '\0' && rest != NULL)
 			sscanf(rest, "%d", &index2);
+
+		// check if the child node is expressed as a dereference 
+		if (childNode[0] == '*') {
+			childIsDereference = 1;
+			childNode++; // skip the first character
+		}
 	}
+
+	thData_t *data = (thData_t*) malloc(sizeof(thData_t));
+	memset(data, 0, sizeof(thData_t));
 
 	target_t *tmp = list;
 	while (tmp)
@@ -815,45 +842,65 @@ thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 		{
 			// the strings are matching
 
-			unsigned long address = tmp->address;
-			if (IS_TYPE_POINTER(tmp->type))
-			{
-				address = (unsigned long)*((void **)tmp->address);
+			if (*childNode && !IS_TYPE_STRUCT(tmp->type)) {
+				// child node specified but tmp is not a father injection target
+				// example: xDelayedTaskList1->my_field is NOT valid
+				ERR_PRINT("Invalid injection target %s\n", targetName);
+				break;
 			}
 
-			if (IS_TYPE_ARRAY(tmp->type) && index1 >= 0)
+			if (parentIsDereference && !IS_TYPE_POINTER(tmp->type))
 			{
-				address = address + (tmp->size * index1);
+				// invalid state: attempt at dereferencing a non-pointer target
+				// example: *pxReadyTasksLists is not valid
+				ERR_PRINT("Invalid injection target: attempt at dereferencing a non-pointer target %s\n", targetName);
+				break;
 			}
 
-			if (IS_TYPE_LIST(tmp->type) && *childNode)
+			data->address = (unsigned long) tmp->address; // compute the final injection address
+
+			if (parentIsDereference ||
+				(IS_TYPE_POINTER(tmp->type) && IS_TYPE_STRUCT(tmp->type) && *childNode))
 			{
-				// unsupported
-				free(copyToSearch);
-				return NULL;
+				// example: *pxDelayedTaskList and *pxCurrentTCB are valid
+				// example: pxCurrentTCB.pxStack is valid since pxCurrentTCB points to a struct and a child is specified
+				// address = (unsigned long)*((void **)tmp->address);
+				data->isPointer = 1;
+			}
+
+			if (IS_TYPE_ARRAY(tmp->type))
+			{
+				// tmp is an array
+				if (index1 >= 0) {
+					// select item in position index1
+					data->address = data->address + (tmp->size * index1);
+				} else if (index1 == -1) {
+					// randomly select a target inside the array
+					data->address = data->address + (tmp->size * (rand() % tmp->nmemb));
+				}
 			}
 
 			if (!(*childNode))
 			{
 				// no child reference specified => return the current node
+				if (IS_TYPE_LIST(tmp->type) &&
+					((IS_TYPE_ARRAY(tmp->type) && index2 >= -1) || (!IS_TYPE_ARRAY(tmp->type) && index1 >= -1))) {
 
-				thData_t *data = (thData_t*) malloc(sizeof(thData_t));
-				memset(data, 0, sizeof(thData_t));
-
-				if (IS_TYPE_LIST(tmp->type)) {
-					// todo: set isList and index 
 					data->isList = 1;
-					if (IS_TYPE_ARRAY(tmp->type)) {
-						data->listPosition = index2;
-					} else {
-						data->listPosition = index1;
+					if (IS_TYPE_ARRAY(tmp->type))
+					{
+						data->listPosition = max(index2, -1);
+					}
+					else
+					{
+						data->listPosition = max(index1, -1);
 					}
 				}
 
-				data->address = (void*) address;
+				data->address = (void*) data->address;
 				data->target = tmp;
 
-				free(copyToSearch);
+				free(_targetName);
 				return data;
 			}
 
@@ -862,26 +909,29 @@ thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 			{
 				if (strcmp(child->name, childNode) == 0)
 				{
-					thData_t *data = (thData_t*) malloc(sizeof(thData_t));
-					memset(data, 0, sizeof(thData_t));
-
-					unsigned long address = child->address;
+					unsigned long innerAddress = (unsigned long) child->address;
+					
 					if (IS_TYPE_ARRAY(child->type) && index2 >= 0)
 					{
-						address = address + (child->size * index2);
+						// tmp is an array
+						if (index2 >= 0) {
+							// select item in position index1
+							innerAddress = innerAddress + (child->size * index2);
+						} else if (index2 == -1) {
+							// randomly select a target inside the array
+							innerAddress = innerAddress + (child->size * (rand() % child->nmemb));
+						}
 					}
 
-					data->address = (void*) address;
-
-					if (IS_TYPE_LIST(child->type) && *childNode)
-					{
-						data->isList = 1;
-						data->listPosition = index1;
+					if (data->isPointer) {
+						data->offset = (void*) innerAddress;
+					} else {
+						data->address = (void*) (data->address + innerAddress);
 					}
 
 					data->target = child;
 
-					free(copyToSearch);
+					free(_targetName);
 					return data;
 				}
 			}
@@ -892,7 +942,7 @@ thData_t *getInjectionTarget(target_t *list, const char *toSearch)
 	}
 
 	// no target found
-	free(copyToSearch);
+	free(_targetName);
 	return NULL;
 }
 
@@ -1215,15 +1265,16 @@ static void printMany(FILE *fp, char c, int number)
 
 static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns)
 {
-	printMany(stdout, '-', 115);
-	fprintf(stdout, "\n| %-30s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
-			"Target", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
+	printMany(stdout, '-', 128);
+	fprintf(stdout, "\n| %-30s | %10s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
+			"Target", "Time (ns)", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
-		printMany(stdout, '-', 115);
-		fprintf(stdout, "\n| %-30s | %13d | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% |\n",
+		printMany(stdout, '-', 128);
+		fprintf(stdout, "\n| %-30s | %10d | %13d | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% |\n",
 				injectionCampaigns[i].targetStructure,
+				injectionCampaigns[i].medTimeRange,
 				injectionCampaigns[i].nInjections,
 				(100.0 * injectionCampaigns[i].res.nSilent) / injectionCampaigns[i].nInjections,
 				(100.0 * injectionCampaigns[i].res.nDelay) / injectionCampaigns[i].nInjections,
@@ -1231,6 +1282,6 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 				(100.0 * injectionCampaigns[i].res.nHang) / injectionCampaigns[i].nInjections,
 				(100.0 * injectionCampaigns[i].res.nCrash) / injectionCampaigns[i].nInjections);
 	}
-	printMany(stdout, '-', 115);
+	printMany(stdout, '-', 128);
 	fprintf(stdout, "\n");
 }

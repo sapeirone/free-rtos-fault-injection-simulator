@@ -1,0 +1,73 @@
+# use '#' for comments
+uxTopReadyPriority,50,5000000,5000,u
+uxTopReadyPriority,50,10000000,5000,u
+uxTopReadyPriority,50,20000000,5000,u
+xNumOfOverflows,50,5000000,5000,t
+xNumOfOverflows,50,10000000,5000,t
+xNumOfOverflows,50,20000000,5000,t
+xDelayedTaskList2,50,5000000,5000,u
+xDelayedTaskList2,50,10000000,5000,u
+xDelayedTaskList2,50,20000000,5000,u
+xIdleTaskHandle,50,5000000,5000,u
+xIdleTaskHandle,50,10000000,5000,u
+xIdleTaskHandle,50,20000000,5000,u
+xSchedulerRunning,50,5000000,5000,g
+xSchedulerRunning,50,10000000,5000,g
+xSchedulerRunning,50,20000000,5000,g
+xTimerTaskHandle,50,5000000,5000,u
+xTimerTaskHandle,50,10000000,5000,u
+xTimerTaskHandle,50,20000000,5000,u
+xTimerQueue,50,5000000,5000,u
+xTimerQueue,50,10000000,5000,u
+xTimerQueue,50,20000000,5000,u
+xNextTaskUnblockTime,50,5000000,5000,u
+xNextTaskUnblockTime,50,10000000,5000,u
+xNextTaskUnblockTime,50,20000000,5000,u
+xTasksWaitingTermination,50,5000000,5000,g
+xTasksWaitingTermination,50,10000000,5000,g
+xTasksWaitingTermination,50,20000000,5000,g
+uxDeletedTasksWaitingCleanUp,50,5000000,5000,u
+uxDeletedTasksWaitingCleanUp,50,10000000,5000,u
+uxDeletedTasksWaitingCleanUp,50,20000000,5000,u
+xActiveTimerList1,50,5000000,5000,u
+xActiveTimerList1,50,10000000,5000,u
+xActiveTimerList1,50,20000000,5000,u
+xYieldPending,50,5000000,5000,t
+xYieldPending,50,10000000,5000,t
+xYieldPending,50,20000000,5000,t
+pxCurrentTCB,50,5000000,5000,u # inject on the pointer
+pxCurrentTCB,50,10000000,5000,u # inject on the pointer
+pxCurrentTCB,50,20000000,5000,u # inject on the pointer
+*pxCurrentTCB,50,50000000,5000,u # inject on the struct
+*pxCurrentTCB,50,10000000,5000,u # inject on the struct
+*pxCurrentTCB,50,20000000,5000,u # inject on the struct
+pxCurrentTCB.pxTopOfStack,50,5000000,5000,u # inject on the struct's field
+pxCurrentTCB.pxTopOfStack,50,10000000,5000,u # inject on the struct's field
+pxCurrentTCB.pxTopOfStack,50,20000000,5000,u # inject on the struct's field
+pxCurrentTCB.uxPriority,50,5000000,5000,u # inject on the struct's field
+pxCurrentTCB.uxPriority,50,10000000,5000,u # inject on the struct's field
+pxCurrentTCB.uxPriority,50,20000000,5000,u # inject on the struct's field
+pxCurrentTCB.ucNotifyState[2],50,5000000,5000,u # inject on the struct's field
+pxCurrentTCB.ucNotifyState[2],50,10000000,5000,u # inject on the struct's field
+pxCurrentTCB.ucNotifyState[2],50,20000000,5000,u # inject on the struct's field
+pxCurrentTimerList,50,5000000,5000,u # inject on the pointer
+pxCurrentTimerList,50,10000000,5000,u # inject on the pointer
+pxCurrentTimerList,50,20000000,5000,u # inject on the pointer
+*pxCurrentTimerList,50,5000000,5000,u # inject on the first List_t struct
+*pxCurrentTimerList,50,10000000,5000,u # inject on the first List_t struct
+*pxCurrentTimerList,50,20000000,5000,u # inject on the first List_t struct
+xActiveTimerList1[0],50,5000000,5000,u # inject on the first element in the list
+xActiveTimerList1[0],50,10000000,5000,u # inject on the first element in the list
+xActiveTimerList1[0],50,20000000,5000,u # inject on the first element in the list
+xActiveTimerList1[-1],50,5000000,5000,u # inject on a random element in the list
+xActiveTimerList1[-1],50,10000000,5000,u # inject on a random element in the list
+xActiveTimerList1[-1],50,20000000,5000,u # inject on a random element in the list
+pxReadyTasksLists,50,5000000,5000,u # inject on the first element of the array
+pxReadyTasksLists,50,10000000,5000,u # inject on the first element of the array
+pxReadyTasksLists,50,20000000,5000,u # inject on the first element of the array
+pxReadyTasksLists[2],50,5000000,5000,u # inject on the List_t struct in position 2 in the array
+pxReadyTasksLists[2],50,10000000,5000,u # inject on the List_t struct in position 2 in the array
+pxReadyTasksLists[2],50,20000000,5000,u # inject on the List_t struct in position 2 in the array
+pxReadyTasksLists[1][2],50,5000000,5000,u # inject on the second item in the first list in the array
+pxReadyTasksLists[1][2],50,10000000,5000,u # inject on the second item in the first list in the array
+pxReadyTasksLists[1][2],50,20000000,5000,u # inject on the second item in the first list in the array
