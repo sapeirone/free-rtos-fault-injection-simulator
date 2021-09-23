@@ -448,8 +448,8 @@ static void execInjectionCampaign(int argc, char **argv)
 			}
 			else if (IS_TYPE_POINTER(inj->target->type) && !inj->isPointer)
 			{
-				offsetByte = rand() % (sizeof(void *)); //select byte to inject
-				DEBUG_PRINT("2: %d", sizeof(void *));
+				offsetByte = rand() % (sizeof(char *)); //select byte to inject
+				DEBUG_PRINT("2: %d", sizeof(char *));
 			}
 			else
 			{
@@ -857,7 +857,7 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 				break;
 			}
 
-			data->address = (unsigned long) tmp->address; // compute the final injection address
+			data->address = tmp->address; // compute the final injection address
 
 			if (parentIsDereference ||
 				(IS_TYPE_POINTER(tmp->type) && IS_TYPE_STRUCT(tmp->type) && *childNode))
@@ -873,10 +873,10 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 				// tmp is an array
 				if (index1 >= 0) {
 					// select item in position index1
-					data->address = data->address + (tmp->size * index1);
+					data->address = (void*) (((unsigned long) data->address) + (tmp->size * index1));
 				} else if (index1 == -1) {
 					// randomly select a target inside the array
-					data->address = data->address + (tmp->size * (rand() % tmp->nmemb));
+					data->address = (void*) (((unsigned long) data->address) + (tmp->size * (rand() % tmp->nmemb)));
 				}
 			}
 
@@ -926,7 +926,7 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 					if (data->isPointer) {
 						data->offset = (void*) innerAddress;
 					} else {
-						data->address = (void*) (data->address + innerAddress);
+						data->address = (void*) ((unsigned long) data->address + innerAddress);
 					}
 
 					data->target = child;
