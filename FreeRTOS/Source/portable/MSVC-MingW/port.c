@@ -33,6 +33,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "simulator.h"
+
 #ifdef __GNUC__
 	#include "mmsystem.h"
 #else
@@ -624,7 +626,10 @@ ThreadState_t *pxThreadState = ( ThreadState_t *) *( ( size_t * ) pxCurrentTCB )
 			execute.  In most cases the (simulated) interrupt will have
 			executed before the next line is reached - so this is just to make
 			sure. */
-			WaitForSingleObject( pxThreadState->pvYieldEvent, INFINITE );
+			if (WaitForSingleObject(pxThreadState->pvYieldEvent, 5000) == WAIT_TIMEOUT)
+			{
+				ERR_PRINT("WaitForSingleObject(pxThreadState->pvYieldEvent, 2000) timed out\n");	
+			}
 		}
 	}
 }
