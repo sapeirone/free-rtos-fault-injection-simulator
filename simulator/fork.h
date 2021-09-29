@@ -34,4 +34,16 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
  */
 int waitFreeRTOSInjection(const freeRTOSInstance *instance);
 
+/**
+ * Wait for one FreeRTOS instance to complete.
+ * 
+ * const freeRTOSInstance *instances is the array of instances to wait
+ * int size is the number of elements in the instances array
+ * int *exitCode is a pointer to the exit code of the terminated instance
+ * 
+ * The function returns the position of the instance that terminated.
+ * In case of errors, -1 is returned.
+ */
+int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exitCode);
+
 #endif

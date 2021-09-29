@@ -70,3 +70,33 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
         return -1; // TODO: add more cases
     }
 }
+
+int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exitCode) {
+    int _exitCode;
+
+    // wait for any child process
+    pid_t pid = waitpid(-1, &_exitCode, 0);
+    if (pid < 0) {
+        // unexpected error of waitpid function
+        return -1;
+    }
+
+    // find the corresponding pid in the instances array
+    int pos;
+    for (pos = 0; pos < size && instances[pos].pid != pid; pos++);
+
+    if (pos == size) {
+        // pid is not in the array: this is unexpected!
+        return -1;
+    }
+
+    // check the exit code
+    if (WIFEXITED(_exitCode)) {
+        *exitCode = WEXITSTATUS(_exitCode);
+    } else {
+        *exitCode = -1; // TODO: add more cases
+    }
+
+    // return the position of the child that returned
+    return pos;
+}

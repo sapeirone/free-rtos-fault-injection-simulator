@@ -57,3 +57,8 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 
     return (unsigned int) exitCode;
 }
+
+int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exitCode) {
+    // not yet implemented
+    return -1;
+}
