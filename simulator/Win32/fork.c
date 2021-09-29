@@ -59,6 +59,28 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 }
 
 int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exitCode) {
-    // not yet implemented
-    return -1;
+
+    // Copy the wrapped HANDLEs in an array of HANDLEs
+    HANDLE *instancesToWait;
+    instancesToWait = (HANDLE *) malloc(sizeof(HANDLE) * size);
+    for(int i = 0; i < size; ++i){
+        instancesToWait[i] = instances[i].procHandle;
+    }
+
+    // Wait for the first child process to exit
+    DWORD returned = WaitForMultipleObjects(size, instancesToWait, FALSE, INFINITE);
+    if (returned == WAIT_FAILED) {
+        // unexpected error of WaitForMultipleObjects function
+        return -1;
+    }
+
+    if ((returned - WAIT_OBJECT_0) >= size || (returned - WAIT_OBJECT_0) < 0) {
+        // HANDLE index is not in the array: this is unexpected!
+        return -1;
+    }
+
+    free(instancesToWait);
+
+    // return the position of the child that returned
+    return (returned - WAIT_OBJECT_0);
 }
