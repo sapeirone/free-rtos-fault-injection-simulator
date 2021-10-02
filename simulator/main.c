@@ -405,6 +405,10 @@ static void execInjectionCampaign(int argc, char **argv)
 	// initialize the random seed
 	srand((unsigned int)time(NULL));
 	int nCurrentInjection = 0;
+	int full = 0;
+	const int N = 1; // parallelism
+	freeRTOSInstance *pendingSimulations;
+	pendingSimulations = (freeRTOSInstance *) malloc(sizeof(freeRTOSInstance)*N);
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -412,135 +416,156 @@ static void execInjectionCampaign(int argc, char **argv)
 		injectionCampaign_t *campaign = injectionCampaigns + i;
 		memset(&campaign->res, 0, sizeof(injectionResults_t));
 
-		for (int j = 0; j < campaign->nInjections; ++j)
+		thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
+		if (inj == NULL)
 		{
-			// For each injection in a campaign
-			nCurrentInjection++;
-			DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
+			ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
+			exit(GENERIC_ERROR_EXIT_CODE);
+		}
 
+		// verify the median injection time does not exceed the
+		// execution time of the golden simulation
+		if (campaign->medTimeRange > nanoGoldenEx)
+		{
+			ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
+			exit(GENERIC_ERROR_EXIT_CODE);
+		}
+
+		int j = 0; // index inside the campaign
+		int stop = 0;
+
+		while (!stop)
+		{
 			if (pgBarEnabled)
 			{
 				/* Progress bar */
 				printProgressBar(((double)nCurrentInjection / nTotalInjections));
 			}
 
-			thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
-			if (inj == NULL)
-			{
-				ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
-				exit(GENERIC_ERROR_EXIT_CODE);
-			}
+			while (!stop && full < N) {
+				// For each injection in a campaign
+				nCurrentInjection++;
+				DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
 
-			target_t *injTarget = inj->target;
+				target_t *injTarget = inj->target;
 
-			// verify the median injection time does not exceed the
-			// execution time of the golden simulation
-			if (campaign->medTimeRange > nanoGoldenEx)
-			{
-				ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
-				exit(GENERIC_ERROR_EXIT_CODE);
-			}
-
-			unsigned long offsetByte;
-			if (inj->isList) {
-				offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
-				DEBUG_PRINT("Selecting target as list item");
-			}
-			else if (IS_TYPE_POINTER(inj->target->type) && !inj->isPointer)
-			{
-				offsetByte = rand() % (sizeof(char *)); //select byte to inject
-				DEBUG_PRINT("2: %d", sizeof(char *));
-			}
-			else
-			{
-				offsetByte = rand() % injTarget->size; //select byte to inject
-				DEBUG_PRINT("1: %d", injTarget->size);
-			}
-
-			unsigned long offsetBit = rand() % 8;				 //select bit to inject
-			unsigned long injTime;
-
-			double total = 0;
-
-			// pick a distribution
-			switch (campaign->distribution)
-			{
-			case 'g':
-
-				//gaussian distribution approximated starting from the Irwin-Hall distribution
-				for (int gaussian = 0; gaussian < 12; ++gaussian)
+				unsigned long offsetByte;
+				if (inj->isList) {
+					offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
+					DEBUG_PRINT("Selecting target as list item");
+				}
+				else if (IS_TYPE_POINTER(inj->target->type) && !inj->isPointer)
 				{
-					total += rand() % 1000;
+					offsetByte = rand() % (sizeof(char *)); //select byte to inject
+					DEBUG_PRINT("2: %d", sizeof(char *));
 				}
-				total = (total - 6000) / 1000;
-
-				injTime = total * campaign->variance / 6 + campaign->medTimeRange;
-
-				if(injTime<0){
-					injTime=injTime+campaign->variance/2;
-				}
-
-				break;
-
-			case 't':
-
-				//triangular distribution
-				for (int gaussian = 0; gaussian < 12; ++gaussian)
+				else
 				{
-					total += rand() % 1000;
-				}
-				total = (total - 1000) / 1000;
-
-				injTime = total * campaign->variance + campaign->medTimeRange;
-
-				if(injTime<0){
-					injTime=injTime+campaign->variance/2;
+					offsetByte = rand() % injTarget->size; //select byte to inject
+					DEBUG_PRINT("1: %d", injTarget->size);
 				}
 
-				break;
+				unsigned long offsetBit = rand() % 8;				 //select bit to inject
+				unsigned long injTime;
 
-			case 'u':
-			default:
-				injTime = campaign->medTimeRange;
+				double total = 0;
 
-				// compute the width of the injection time range
-				int lowerWidth = min(campaign->medTimeRange, campaign->variance);
-				int upperWidth = min(campaign->variance, nanoGoldenEx - campaign->medTimeRange);
-				int range = max(1, lowerWidth + upperWidth);
-				injTime = (rand() % range) - lowerWidth + (signed)campaign->medTimeRange;
-			}
+				// pick a distribution
+				switch (campaign->distribution)
+				{
+				case 'g':
 
-			freeRTOSInstance instance;
-			int ret = runFreeRTOSInjection(&instance, argv[0], campaign->targetStructure, injTime, offsetByte, offsetBit);
-			if (ret < 0)
-			{
-				ERR_PRINT("Couldn't create child process.\n");
-				exit(GENERIC_ERROR_EXIT_CODE);
-			}
+					//gaussian distribution approximated starting from the Irwin-Hall distribution
+					for (int gaussian = 0; gaussian < 12; ++gaussian)
+					{
+						total += rand() % 1000;
+					}
+					total = (total - 6000) / 1000;
+
+					injTime = total * campaign->variance / 6 + campaign->medTimeRange;
+
+					if(injTime<0){
+						injTime=injTime+campaign->variance/2;
+					}
+
+					break;
+
+				case 't':
+
+					//triangular distribution
+					for (int gaussian = 0; gaussian < 12; ++gaussian)
+					{
+						total += rand() % 1000;
+					}
+					total = (total - 1000) / 1000;
+
+					injTime = total * campaign->variance + campaign->medTimeRange;
+
+					if(injTime<0){
+						injTime=injTime+campaign->variance/2;
+					}
+
+					break;
+
+				case 'u':
+				default:
+					injTime = campaign->medTimeRange;
+
+					// compute the width of the injection time range
+					int lowerWidth = min(campaign->medTimeRange, campaign->variance);
+					int upperWidth = min(campaign->variance, nanoGoldenEx - campaign->medTimeRange);
+					int range = max(1, lowerWidth + upperWidth);
+					injTime = (rand() % range) - lowerWidth + (signed)campaign->medTimeRange;
+				}
+
+				int ret = runFreeRTOSInjection(&pendingSimulations[full], argv[0], campaign->targetStructure, injTime, offsetByte, offsetBit);
+				if (ret < 0)
+				{
+					ERR_PRINT("Couldn't create child process.\n");
+					exit(GENERIC_ERROR_EXIT_CODE);
+				}
+
+				full++;
+				if (++j == campaign->nInjections) stop = 1;
+			}			
 
 			// Father process
-			unsigned int exitCode = waitFreeRTOSInjection(&instance);
-			DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %u...\n\n", nCurrentInjection, nTotalInjections, exitCode);
+			do {		
+				// pos is the index of the simulation that just completed
+				unsigned int exitCode;
+				int pos = waitFreeRTOSInjections(pendingSimulations, full, &exitCode);
 
-			switch (exitCode)
-			{
-			case EXECUTION_RESULT_HANG_EXIT_CODE:
-				campaign->res.nHang++;
-				break;
-			case EXECUTION_RESULT_ERROR_EXIT_CODE:
-				campaign->res.nError++;
-				break;
-			case EXECUTION_RESULT_DELAY_EXIT_CODE:
-				campaign->res.nDelay++;
-				break;
-			case EXECUTION_RESULT_SILENT_EXIT_CODE:
-				campaign->res.nSilent++;
-				break;
-			case EXECUTION_RESULT_CRASH_EXIT_CODE:
-			default:
-				// printf("%u\n", exitCode);
-				campaign->res.nCrash++;
-			}
+				DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %u...\n\n", nCurrentInjection, nTotalInjections, exitCode);
+
+				// classify exit code and update campaign
+				switch (exitCode)
+				{
+				case EXECUTION_RESULT_HANG_EXIT_CODE:
+					campaign->res.nHang++;
+					break;
+				case EXECUTION_RESULT_ERROR_EXIT_CODE:
+					campaign->res.nError++;
+					break;
+				case EXECUTION_RESULT_DELAY_EXIT_CODE:
+					campaign->res.nDelay++;
+					break;
+				case EXECUTION_RESULT_SILENT_EXIT_CODE:
+					campaign->res.nSilent++;
+					break;
+				case EXECUTION_RESULT_CRASH_EXIT_CODE:
+				default:
+					// printf("%u\n", exitCode);
+					campaign->res.nCrash++;
+				}
+
+				full--;
+				freeRTOSInstance tmp = pendingSimulations[pos];
+				pendingSimulations[pos] = pendingSimulations[full];
+				pendingSimulations[full] = tmp;
+			
+				// no more injections to run ==> wait all the pending simulations
+			} while (full && stop);
+
 		}
 	}
 
@@ -1265,6 +1290,7 @@ static void printMany(FILE *fp, char c, int number)
 
 static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns)
 {
+	fprintf(stdout, "\n");
 	printMany(stdout, '-', 128);
 	fprintf(stdout, "\n| %-30s | %10s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
 			"Target", "Time (ns)", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");

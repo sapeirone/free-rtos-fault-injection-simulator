@@ -79,6 +79,7 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
         return -1;
     }
 
+    GetExitCodeProcess(instances[returned - WAIT_OBJECT_0].procHandle, (LPDWORD) exitCode);
     free(instancesToWait);
 
     // return the position of the child that returned
