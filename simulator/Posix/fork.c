@@ -6,9 +6,14 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <sched.h>
+#include <signal.h>
+#include <time.h>
 
 #include "../fork.h"
 #include "fork_internal.h"
+
+static int run_watchdog_timer(pid_t pid);
+static void watchdog_func(union sigval val);
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
@@ -27,6 +32,10 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     // father process: simply return
     if (pid)
     {
+        if (run_watchdog_timer(pid) != 0) {
+            return FREE_RTOS_FORK_FAILURE;
+        }
+
         instance->pid = pid;
         return FREE_RTOS_FORK_SUCCESS;
     }
@@ -57,6 +66,38 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     perror("child: execv failed");
 
     return FREE_RTOS_FORK_FAILURE;
+}
+
+static int run_watchdog_timer(pid_t pid) {
+    struct sigevent sig;
+    sig.sigev_notify = SIGEV_THREAD;
+    sig.sigev_notify_function = &watchdog_func;
+    sig.sigev_value.sival_int = pid;
+    sig.sigev_notify_attributes = NULL;
+
+    timer_t timerid;
+    if (timer_create(CLOCK_MONOTONIC, &sig, &timerid) != 0) {
+        perror("timer_create failed");
+        return 1;
+    }
+
+    struct itimerspec in, out;
+    in.it_value.tv_sec = 1;
+    in.it_value.tv_nsec = 0;
+    in.it_interval.tv_sec = 0;
+    in.it_interval.tv_nsec = 0;
+
+    if (timer_settime(timerid, 0, &in, &out) != 0) {
+        perror("timer_settime failed");
+        return 2;
+    }
+
+    return 0;
+}
+
+static void watchdog_func(union sigval val) {
+    // printf("Killing %d...\n", val.sival_int);
+    kill((pid_t) val.sival_int, SIGKILL);
 }
 
 int waitFreeRTOSInjection(const freeRTOSInstance *instance)
