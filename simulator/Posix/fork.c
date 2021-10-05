@@ -9,10 +9,12 @@
 #include <signal.h>
 #include <time.h>
 
-#include "../fork.h"
+#include "../simulator.h"
 #include "fork_internal.h"
 
-static int run_watchdog_timer(pid_t pid);
+#define WATCHDOG_TIMEOUT_SEC 1
+
+static int run_watchdog_timer(pid_t pid, timer_t *timerId);
 static void watchdog_func(union sigval val);
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
@@ -32,7 +34,10 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     // father process: simply return
     if (pid)
     {
-        if (run_watchdog_timer(pid) != 0) {
+        if (run_watchdog_timer(pid, &instance->watchdog) != 0) {
+            // creation of the timer failed
+            // kill the child and return an error
+            kill(pid, SIGKILL);
             return FREE_RTOS_FORK_FAILURE;
         }
 
@@ -68,42 +73,56 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     return FREE_RTOS_FORK_FAILURE;
 }
 
-static int run_watchdog_timer(pid_t pid) {
+/**
+ * Setup a watchdog timer that kills the child process running a
+ * FreeRTOS simulation if it exceeds a maximum execution time.
+ */
+static int run_watchdog_timer(pid_t pid, timer_t *timerId) {
     struct sigevent sig;
     sig.sigev_notify = SIGEV_THREAD;
+    // when the timer expires watchdog_func is called
     sig.sigev_notify_function = &watchdog_func;
+    // with pid as parameter
     sig.sigev_value.sival_int = pid;
     sig.sigev_notify_attributes = NULL;
 
-    timer_t timerid;
-    if (timer_create(CLOCK_MONOTONIC, &sig, &timerid) != 0) {
-        perror("timer_create failed");
+    // create the timer using the CLOCK_MONOTONIC clock (the same used
+    // by run-time-stats-utils)
+    if (timer_create(CLOCK_MONOTONIC, &sig, timerId) != 0) {
+        ERR_PRINT("timer_create failed");
         return 1;
     }
 
+    // setup the timer duration
     struct itimerspec in, out;
-    in.it_value.tv_sec = 1;
+    in.it_value.tv_sec = WATCHDOG_TIMEOUT_SEC;
     in.it_value.tv_nsec = 0;
+    // this interval is NOT periodic
     in.it_interval.tv_sec = 0;
     in.it_interval.tv_nsec = 0;
 
-    if (timer_settime(timerid, 0, &in, &out) != 0) {
-        perror("timer_settime failed");
-        return 2;
+    if (timer_settime(*timerId, 0, &in, &out) != 0) {
+        ERR_PRINT("timer_settime failed");
+        return 1;
     }
 
     return 0;
 }
 
 static void watchdog_func(union sigval val) {
-    // printf("Killing %d...\n", val.sival_int);
-    kill((pid_t) val.sival_int, SIGKILL);
+    DEBUG_PRINT("Killing %d...\n", val.sival_int);
+    if (kill((pid_t) val.sival_int, SIGKILL) != 0) {
+        ERR_PRINT("watchdog timer failed to kill pid %d: this should not happen!\n", val.sival_int);
+    }
 }
 
 int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 {
     int exitCode;
     waitpid(instance->pid, &exitCode, 0);
+
+    // stop the watchdog timer
+    timer_delete(instance->watchdog);
 
     if (WIFEXITED(exitCode)) {
         return WEXITSTATUS(exitCode);
@@ -130,6 +149,9 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
         // pid is not in the array: this is unexpected!
         return -1;
     }
+
+    // stop the watchdog timer
+    timer_delete(instances[pos].watchdog);
 
     // check the exit code
     if (WIFEXITED(_exitCode)) {
