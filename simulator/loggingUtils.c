@@ -16,7 +16,8 @@ void loggingFunction(int logCause){
     static int didReceiveISR = 0;
     unsigned long runTimeCounterValue = ulGetRunTimeCounterValue();
     static signed char bufferTCB[LENBUF];
-    static signed char bufferStr[LENBUF];
+    // allocate a larger bufferStr to accomodate bufferTCB and something else
+    static signed char bufferStr[2 * LENBUF];
     vTaskGetCurrentTCBStats(bufferTCB);
 
     /*if(!isGolden && (ulGetRunTimeCounterValue() >= injTime)) {

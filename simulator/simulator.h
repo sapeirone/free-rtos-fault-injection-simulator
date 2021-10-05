@@ -100,3 +100,5 @@ int isGolden;
 #define min(a, b) ((a < b) ? a : b)
 #undef max
 #define max(a, b) ((a > b) ? a : b)
+
+extern void vPortGenerateSimulatedInterrupt(uint32_t ulInterruptNumber);

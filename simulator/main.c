@@ -355,23 +355,40 @@ static void execInjectionCampaign(int argc, char **argv)
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
-		double estTimeMin = (1.0 * injectionCampaigns[i].nInjections * nanoGoldenEx) / (1000.0 * 1000.0 * 1000.0);
+		injectionCampaign_t *campaign = injectionCampaigns + i;
+
+		thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
+		if (inj == NULL)
+		{
+			ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
+			exit(GENERIC_ERROR_EXIT_CODE);
+		}
+
+		// verify the median injection time does not exceed the
+		// execution time of the golden simulation
+		if (campaign->medTimeRange > nanoGoldenEx)
+		{
+			ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
+			exit(GENERIC_ERROR_EXIT_CODE);
+		}
+
+		double estTimeMin = (1.0 * campaign->nInjections * nanoGoldenEx) / (1000.0 * 1000.0 * 1000.0);
 		//300% of golden execution time, for each injection in the campaign
 		double estTimeMax = estTimeMin * 3.0;
 
 		printMany(stdout, '-', 117);
-		fprintf(stdout, "\n| %-30s | %10d | %8d | %10lu | %5lu | %5c | %10.2f s | %10.2f s |\n",
-				injectionCampaigns[i].targetStructure,
-				injectionCampaigns[i].medTimeRange,
-				injectionCampaigns[i].nInjections,
-				injectionCampaigns[i].medTimeRange,
-				injectionCampaigns[i].variance,
-				injectionCampaigns[i].distribution,
+		fprintf(stdout, "\n| %-30s | %10ld | %8d | %10lu | %5lu | %5c | %10.2f s | %10.2f s |\n",
+				campaign->targetStructure,
+				campaign->medTimeRange,
+				campaign->nInjections,
+				campaign->medTimeRange,
+				campaign->variance,
+				campaign->distribution,
 				estTimeMin, estTimeMax);
 
 		estTotTimeMin += estTimeMin;
 		estTotTimeMax += estTimeMax;
-		nTotalInjections += injectionCampaigns[i].nInjections;
+		nTotalInjections += campaign->nInjections;
 	}
 
 	printMany(stdout, '-', 117);
@@ -416,20 +433,8 @@ static void execInjectionCampaign(int argc, char **argv)
 		injectionCampaign_t *campaign = injectionCampaigns + i;
 		memset(&campaign->res, 0, sizeof(injectionResults_t));
 
+		// at this stage, inj cannot be null
 		thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
-		if (inj == NULL)
-		{
-			ERR_PRINT("No target with name %s was found.\n", campaign->targetStructure);
-			exit(GENERIC_ERROR_EXIT_CODE);
-		}
-
-		// verify the median injection time does not exceed the
-		// execution time of the golden simulation
-		if (campaign->medTimeRange > nanoGoldenEx)
-		{
-			ERR_PRINT("Invalid injection time for target %s\n", campaign->targetStructure);
-			exit(GENERIC_ERROR_EXIT_CODE);
-		}
 
 		int j = 0; // index inside the campaign
 		int stop = 0;
@@ -973,15 +978,13 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 
 static void printApplicationArguments(int argc, char **argv)
 {
-	char buffer[1024];
-
-	sprintf(buffer, "%s", "Application arguments: ");
+	DEBUG_PRINT("Application arguments: ");
 	for (int i = 0; i < argc; i++)
 	{
-		sprintf(buffer, "%s %s", buffer, argv[i]);
+		DEBUG_PRINT("%s ", argv[i]);
 	}
 
-	DEBUG_PRINT("%s \n", buffer);
+	DEBUG_PRINT("\n");
 }
 
 static void runSimulator(const thData_t *injectionArgs)
@@ -1291,14 +1294,14 @@ static void printMany(FILE *fp, char c, int number)
 static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInjectionCampaigns)
 {
 	fprintf(stdout, "\n");
-	printMany(stdout, '-', 128);
-	fprintf(stdout, "\n| %-30s | %10s | %13s | %10s | %10s | %10s | %10s | %10s |\n",
-			"Target", "Time (ns)", "# Injections", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
+	printMany(stdout, '-', 123);
+	fprintf(stdout, "\n| %-30s | %10s | %8s | %10s | %10s | %10s | %10s | %10s |\n",
+			"Target", "Time (ns)", "nExecs", "Silent %", "Delay %", "Error %", "Hang %", "Crash %");
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
-		printMany(stdout, '-', 128);
-		fprintf(stdout, "\n| %-30s | %10d | %13d | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% |\n",
+		printMany(stdout, '-', 123);
+		fprintf(stdout, "\n| %-30s | %10ld | %8d | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% | %9.2f%% |\n",
 				injectionCampaigns[i].targetStructure,
 				injectionCampaigns[i].medTimeRange,
 				injectionCampaigns[i].nInjections,
@@ -1308,6 +1311,6 @@ static void printStatistics(injectionCampaign_t *injectionCampaigns, int nInject
 				(100.0 * injectionCampaigns[i].res.nHang) / injectionCampaigns[i].nInjections,
 				(100.0 * injectionCampaigns[i].res.nCrash) / injectionCampaigns[i].nInjections);
 	}
-	printMany(stdout, '-', 128);
+	printMany(stdout, '-', 123);
 	fprintf(stdout, "\n");
 }
