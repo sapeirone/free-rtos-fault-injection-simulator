@@ -7,8 +7,15 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../fork.h"
+#include "../simulator.h"
 #include "fork_internal.h"
+
+#define ONE_SEC_IN_NS (1000 * 1000 * 1000)
+
+
+static int runWatchdogTimer(LPHANDLE procHandle, LPHANDLE timerId);
+static VOID CALLBACK watchdogFunc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
+
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
@@ -45,12 +52,27 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
 
     SetPriorityClass(procInfo.hProcess, REALTIME_PRIORITY_CLASS);
     instance->procHandle = procInfo.hProcess;
+
+    // setup the watchdog timer for the child process
+    if (runWatchdogTimer(&instance->procHandle, &instance->watchdog) != 0) {
+        ERR_PRINT("Cannot create watchdog timer for pid %d", GetProcessId(instance->procHandle));
+        // error creating the watchdog timer
+        // kill the child and return
+        if (TerminateProcess(instance->procHandle, 1) == 0) {
+            ERR_PRINT("Cannot terminate proc %p\n", instance->procHandle);
+        }
+
+        // wait the killed child process
+        WaitForSingleObject(instance->procHandle, INFINITE); 
+        return FREE_RTOS_FORK_FAILURE;
+    }
+
     return FREE_RTOS_FORK_SUCCESS;
 }
 
 int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 {
-    WaitForSingleObject(instance->procHandle, INFINITE);
+    while (WaitForSingleObjectEx(instance->procHandle, INFINITE, TRUE) == WAIT_IO_COMPLETION);
 
     DWORD exitCode = 0;
     GetExitCodeProcess(instance->procHandle, &exitCode);
@@ -68,20 +90,59 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
     }
 
     // Wait for the first child process to exit
-    DWORD returned = WaitForMultipleObjects(size, instancesToWait, FALSE, INFINITE);
+    DWORD returned;
+    while ((returned = WaitForMultipleObjectsEx(size, instancesToWait, FALSE, INFINITE, TRUE)) == WAIT_IO_COMPLETION);
     if (returned == WAIT_FAILED) {
         // unexpected error of WaitForMultipleObjects function
         return -1;
     }
 
-    if ((returned - WAIT_OBJECT_0) >= size || (returned - WAIT_OBJECT_0) < 0) {
+    DWORD index = returned - WAIT_OBJECT_0;
+    if (index >= size || index < 0) {
         // HANDLE index is not in the array: this is unexpected!
         return -1;
     }
 
-    GetExitCodeProcess(instances[returned - WAIT_OBJECT_0].procHandle, (LPDWORD) exitCode);
+    GetExitCodeProcess(instances[index].procHandle, (LPDWORD) exitCode);
+    
+    // kill the corresponding watchdog timer
+    DEBUG_PRINT("Cancelling the watchdog timer\n");
+    CancelWaitableTimer(instances[index].watchdog);
+    CloseHandle(instances[index].watchdog);
+    
     free(instancesToWait);
 
     // return the position of the child that returned
-    return (returned - WAIT_OBJECT_0);
+    return index;
+}
+
+static int runWatchdogTimer(LPHANDLE procHandle, LPHANDLE timerId) {
+    // create the watchdog timer
+    LONGLONG llns = (LONGLONG) 2 *  ONE_SEC_IN_NS / 100LL; // 1 s
+	LARGE_INTEGER li;
+
+	if((*timerId = CreateWaitableTimer(NULL, TRUE, NULL)) == NULL) {
+		return 1;
+    }
+
+	li.QuadPart = -llns;
+	if(SetWaitableTimer(*timerId, &li, 0, watchdogFunc, procHandle, FALSE) == 0){
+		CloseHandle(*timerId);
+		return 1;
+	}
+
+    return 0;
+}
+
+static VOID CALLBACK watchdogFunc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
+    HANDLE procHandle = *((LPHANDLE) lpArgToCompletionRoutine);
+
+    DWORD pid = GetProcessId(procHandle);
+
+    DEBUG_PRINT("Watchdog timeout for proc %d expired. Say your prayers!\n", pid);
+    if (TerminateProcess(procHandle, 1) == 0) {
+        ERR_PRINT("Cannot terminate proc %d. This should not happen!!! (error code %d)\n", pid, GetLastError());
+    } else {
+        DEBUG_PRINT("Watchdog killed proc %d.\n", pid);
+    }
 }

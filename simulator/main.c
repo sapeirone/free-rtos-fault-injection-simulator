@@ -423,7 +423,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	srand((unsigned int)time(NULL));
 	int nCurrentInjection = 0;
 	int full = 0;
-	const int N = 1; // parallelism
+	const int N = 2; // parallelism
 	freeRTOSInstance *pendingSimulations;
 	pendingSimulations = (freeRTOSInstance *) malloc(sizeof(freeRTOSInstance)*N);
 
@@ -457,17 +457,14 @@ static void execInjectionCampaign(int argc, char **argv)
 				unsigned long offsetByte;
 				if (inj->isList) {
 					offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
-					DEBUG_PRINT("Selecting target as list item");
 				}
 				else if (IS_TYPE_POINTER(inj->target->type) && !inj->isPointer)
 				{
 					offsetByte = rand() % (sizeof(char *)); //select byte to inject
-					DEBUG_PRINT("2: %d", sizeof(char *));
 				}
 				else
 				{
 					offsetByte = rand() % injTarget->size; //select byte to inject
-					DEBUG_PRINT("1: %d", injTarget->size);
 				}
 
 				unsigned long offsetBit = rand() % 8;				 //select bit to inject
@@ -978,13 +975,16 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 
 static void printApplicationArguments(int argc, char **argv)
 {
-	DEBUG_PRINT("Application arguments: ");
+#ifdef DEBUG
+	printf("Application arguments: ");
+
 	for (int i = 0; i < argc; i++)
 	{
-		DEBUG_PRINT("%s ", argv[i]);
+		printf("%s ", argv[i]);
 	}
 
-	DEBUG_PRINT("\n");
+	printf("\n");
+#endif
 }
 
 static void runSimulator(const thData_t *injectionArgs)
