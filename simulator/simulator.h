@@ -6,7 +6,6 @@
 #undef OUTPUT_VERBOSE
 
 #define GOLDEN_FILE_PATH "golden.txt"
-int isGolden;
 
 #include "FreeRTOS.h"
 #include "task.h"

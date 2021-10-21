@@ -59,7 +59,7 @@ extern struct myStringStruct array[MAXARRAY];
 extern signed char loggerTrace[TRACELEN][LENBUF];
 
 /* Global variables */
-extern int isGolden;
+int isGolden;
 extern int eventIsSet;
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
