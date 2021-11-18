@@ -91,7 +91,17 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
 
     // Wait for the first child process to exit
     DWORD returned;
-    while ((returned = WaitForMultipleObjectsEx(size, instancesToWait, FALSE, INFINITE, TRUE)) == WAIT_IO_COMPLETION);
+    while ((returned = WaitForMultipleObjectsEx(size, instancesToWait, FALSE, 20, TRUE)) == WAIT_IO_COMPLETION) {
+		for (int i = 0; i < size; i++) {
+			if (WaitForSingleObject(instances[i].watchdog, 0) == WAIT_OBJECT_0) {
+				if (WaitForSingleObject(instances[i].procHandle, 0) != WAIT_OBJECT_0) {
+					DWORD pid = GetProcessId(instances[i].procHandle);
+					ERR_PRINT("AAAAAAAAAAAAAAA");
+					TerminateProcess(instances[i].procHandle, 1);	
+				}
+			}
+		}
+	}
     if (returned == WAIT_FAILED) {
         // unexpected error of WaitForMultipleObjects function
         return -1;

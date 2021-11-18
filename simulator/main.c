@@ -423,7 +423,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	srand((unsigned int)time(NULL));
 	int nCurrentInjection = 0;
 	int full = 0;
-	const int N = 2; // parallelism
+	const int N = 1; // parallelism
 	freeRTOSInstance *pendingSimulations;
 	pendingSimulations = (freeRTOSInstance *) malloc(sizeof(freeRTOSInstance)*N);
 
@@ -564,6 +564,10 @@ static void execInjectionCampaign(int argc, char **argv)
 				freeRTOSInstance tmp = pendingSimulations[pos];
 				pendingSimulations[pos] = pendingSimulations[full];
 				pendingSimulations[full] = tmp;
+				
+				#ifdef WIN32
+				
+				#endif
 			
 				// no more injections to run ==> wait all the pending simulations
 			} while (full && stop);
