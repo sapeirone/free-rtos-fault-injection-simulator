@@ -65,5 +65,7 @@ golden.txt
 
 # compilation outputs and logs
 sim.exe
+sim.out
 cmake_build.log
 msbuild.log
+make_build.log
