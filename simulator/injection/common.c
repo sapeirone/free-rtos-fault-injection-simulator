@@ -38,7 +38,7 @@ void pretty_print_target_type(unsigned int type, char *buffer)
         "ARRAY",
         "POINTER"};
 
-    for (unsigned int index = 0; index <= 5; index++) // todo replace with constant
+    for (unsigned int index = 0; index <= 5; index++)
     {
         if (type & (1 << index))
         {

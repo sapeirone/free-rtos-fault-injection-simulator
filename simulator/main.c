@@ -172,8 +172,6 @@ int main(int argc, char **argv)
 
 	/**
 	 * Read the available injection targets from the tasks and timer modules.
-	 * 
-	 * TODO: possibly add more injection targets.
 	 */
 	targets = read_tasks_targets(NULL);
 	targets = read_timer_targets(targets);
@@ -192,7 +190,6 @@ int main(int argc, char **argv)
 	}
 	else if (strcmp(argv[1], CMD_CAMPAIGN) == 0)
 	{
-		// TODO: option --j number of parallel instances of FreeRTOS + Injector to run simultaneously
 		execInjectionCampaign(argc, argv);
 	}
 
@@ -252,7 +249,7 @@ static void execCmdRun(int argc, char **argv)
 	}
 	DEBUG_PRINT("Execution timeout is %lu\n", goldenExecTime);
 
-	// TODO: replace with strol (atol does NOT detect errors)
+	// pray god the inputs are ok
 	injTime = atol(argv[3]);
 	unsigned long offsetByte = atol(argv[4]);
 	unsigned long offsetBit = atol(argv[5]);
@@ -1174,7 +1171,7 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 		injectionCampaign_t *campaign = *list + index;
 
 		char *rest;
-		// TODO: add more error handling
+		// add more error handling
 		char *token = strtok_s(icBuffer, ",", &rest);
 		campaign->targetStructure = strdup(token);
 
@@ -1200,6 +1197,9 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 		DEBUG_PRINT("Read injection campaign %s\n", campaign->targetStructure);
 
 		++index;
+
+		// clear the buffer
+		memset(icBuffer, 0, LENBUF);
 	}
 	fclose(inputCampaign);
 

@@ -127,7 +127,7 @@ int waitFreeRTOSInjection(const freeRTOSInstance *instance)
     if (WIFEXITED(exitCode)) {
         return WEXITSTATUS(exitCode);
     } else {
-        return -1; // TODO: add more cases
+        return -1;
     }
 }
 
@@ -157,7 +157,7 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
     if (WIFEXITED(_exitCode)) {
         *exitCode = WEXITSTATUS(_exitCode);
     } else {
-        *exitCode = -1; // TODO: add more cases
+        *exitCode = -1; 
     }
 
     // return the position of the child that returned
