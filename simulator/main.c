@@ -291,27 +291,30 @@ static void execCmdGolden(int argc, char **argv)
  * Execute the --campaign command.
  * 
  * Expected parameters:
- * ./sim --campaign /path/to/input/file.csv [-y] [--no-pg-bar]
+ * ./sim --campaign /path/to/input/file.csv [-y] [--no-pg-bar] [--j=N]
  */
 static void execInjectionCampaign(int argc, char **argv)
 {
-	if (argc < 3 || argc > 5)
+	if (argc < 3 || argc > 6)
 	{
 		ERR_PRINT("Invalid number of arguments for %s.\n", CMD_CAMPAIGN);
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
 	const char *input = argv[2];
-	char choice = '0';
-	int pgBarEnabled = 1;
 
-	if ((argc > 3 && strcmp(argv[3], "-y") == 0) || (argc > 4 && strcmp(argv[4], "-y") == 0))
+	char confirm = '0';	  // auto confirm tests execution
+	int pgBarEnabled = 1; // enable|disable progress bar
+	int parallelism = 1;  // number of parallel execution
+
+	for (int i = 3; i < argc; i++)
 	{
-		choice = 'y';
-	}
-	if ((argc > 3 && strcmp(argv[3], "--no-pg-bar") == 0) || (argc > 4 && strcmp(argv[4], "--no-pg-bar") == 0))
-	{
-		pgBarEnabled = 0;
+		if (strcmp(argv[i], "-y") == 0)
+			confirm = 'y';
+		else if (strcmp(argv[i], "--no-pg-bar") == 0)
+			pgBarEnabled = 0;
+		else if (strncmp(argv[i], "-j=", 3) == 0)
+			parallelism = atol(argv[i] + 3);
 	}
 
 	/**
@@ -393,11 +396,11 @@ static void execInjectionCampaign(int argc, char **argv)
 			"Total estimated time", "-", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
 
 	// require user confirmation
-	while (choice != 'y' && choice != 'n')
+	while (confirm != 'y' && confirm != 'n')
 	{
 		fprintf(stdout, "Continue? (y|n): ");
-		fscanf(stdin, "%c", &choice);
-		if (choice == 'n')
+		fscanf(stdin, "%c", &confirm);
+		if (confirm == 'n')
 		{
 			fprintf(stdout, "Aborting...");
 			return;
@@ -420,9 +423,8 @@ static void execInjectionCampaign(int argc, char **argv)
 	srand((unsigned int)time(NULL));
 	int nCurrentInjection = 0;
 	int full = 0;
-	const int N = 4; // parallelism
 	freeRTOSInstance *pendingSimulations;
-	pendingSimulations = (freeRTOSInstance *) malloc(sizeof(freeRTOSInstance)*N);
+	pendingSimulations = (freeRTOSInstance *) malloc(sizeof(freeRTOSInstance)*parallelism);
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -444,7 +446,7 @@ static void execInjectionCampaign(int argc, char **argv)
 				printProgressBar(((double)nCurrentInjection / nTotalInjections));
 			}
 
-			while (!stop && full < N) {
+			while (!stop && full < parallelism) {
 				// For each injection in a campaign
 				nCurrentInjection++;
 				DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
