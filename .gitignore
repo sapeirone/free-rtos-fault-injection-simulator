@@ -63,4 +63,7 @@ build/
 targets.txt
 golden.txt
 
+# compilation outputs and logs
 sim.exe
+cmake_build.log
+msbuild.log
