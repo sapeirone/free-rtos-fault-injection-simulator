@@ -92,12 +92,12 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
 
     // Wait for the first child process to exit
     DWORD waitReturnIndex;
-    while ((waitReturnIndex = WaitForMultipleObjectsEx(2 * size, instancesToWait, FALSE, 20, FALSE)) == WAIT_TIMEOUT);
+    while ((waitReturnIndex = WaitForMultipleObjects(2 * size, instancesToWait, FALSE, 20)) == WAIT_TIMEOUT);
 
     if (waitReturnIndex == WAIT_FAILED)
     {
         // unexpected error of WaitForMultipleObjects function
-        ERR_PRINT("WaitForMultipleObjectsEx return WAIT_FAILED");
+        ERR_PRINT("WaitForMultipleObjectsEx return WAIT_FAILED (err_code=%d)", GetLastError());
         return -1;
     }
 
@@ -124,7 +124,7 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
     free(instancesToWait);
 
     // return the position of the child that returned
-    return index;
+    return index / 2;
 }
 
 static int runWatchdogTimer(LPHANDLE procHandle, LPHANDLE timerId)
