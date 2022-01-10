@@ -9,8 +9,8 @@ The program runs all the campaigns and at the end produces a table of results, c
 As a first step, clone or download this repository in an empty folder.  
 The simulator can be compiled and run both on POSIX and Windows operating systems.  
 Be sure to run the following scripts from the root direcory of the project.  
-On POSIX, the simulator can be compiled by running the [run_posix.sh](run_posix.sh) shell script.  
-On Windows, the simulator can be compiled by running the [run_win32.bat](run_win32.bat) batch script.  
+On POSIX, the simulator can be compiled by running the [compile_posix.sh](compile_posix.sh) shell script.  
+On Windows, the simulator can be compiled by running the [compile_win32.bat](compile_win32.bat) batch script.  
 
 ## Usage
 
@@ -45,7 +45,7 @@ Contribution to the project is welcome, although the project won't be maintained
 ## Authors and Acknowledgement
 
 The project has been developed by Alessandro Franco, Simone Alberto Peirone and Marzio Vallero and supervised by professor A. Savino.  
-The project amounts as a part of the [Computer Engineering Masters Degree](https://didattica.polito.it/pls/portal30/sviluppo.offerta_formativa.corsi?p_sdu_cds=37:18&p_lang=EN) exam [System and Device Programming](https://didattica.polito.it/pls/portal30/gap.pkg_guide.viewGap?p_cod_ins=01NYHOV&p_a_acc=2021&p_header=S&p_lang=EN), taught by professors S. Quer, G. Cabodi and A. Vetrò, during the academic year 2020/2021 at the [Polythecnic of Turin](https://www.polito.it/).
+The project amounts as a part of the [Computer Engineering Masters Degree](https://didattica.polito.it/pls/portal30/sviluppo.offerta_formativa.corsi?p_sdu_cds=37:18&p_lang=EN) exam [System and Device Programming](https://didattica.polito.it/pls/portal30/gap.pkg_guide.viewGap?p_cod_ins=01NYHOV&p_a_acc=2021&p_header=S&p_lang=EN), taught by professors S. Quer, G. Cabodi and A. Vetrò, during the academic year 2020/2021 at the [Politecnico di Torino](https://www.polito.it/).
 
 ## License
 For right to use, copyright and warranty of this software, refer to this project's [License](License.md).
