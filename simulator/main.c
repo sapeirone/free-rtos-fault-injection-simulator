@@ -175,6 +175,7 @@ int main(int argc, char **argv)
 	 */
 	targets = read_tasks_targets(NULL);
 	targets = read_timer_targets(targets);
+	// add more target here
 
 	if (strcmp(argv[1], CMD_LIST) == 0)
 	{
@@ -235,7 +236,7 @@ static void execCmdRun(int argc, char **argv)
 	FILE *golden = fopen(GOLDEN_FILE_PATH, "r");
 	if (!golden)
 	{
-		ERR_PRINT("%s not found\n", GOLDEN_FILE_PATH);
+		ERR_PRINT("%s not found. Be sure to execute the --golden command.\n", GOLDEN_FILE_PATH);
 		exit(GENERIC_ERROR_EXIT_CODE);
 	}
 
@@ -424,7 +425,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	int nCurrentInjection = 0;
 	int full = 0;
 	freeRTOSInstance *pendingSimulations;
-	pendingSimulations = (freeRTOSInstance *) malloc(sizeof(freeRTOSInstance)*parallelism);
+	pendingSimulations = (freeRTOSInstance *)malloc(sizeof(freeRTOSInstance) * parallelism);
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -446,7 +447,8 @@ static void execInjectionCampaign(int argc, char **argv)
 				printProgressBar(((double)nCurrentInjection / nTotalInjections));
 			}
 
-			while (!stop && full < parallelism) {
+			while (!stop && full < parallelism)
+			{
 				// For each injection in a campaign
 				nCurrentInjection++;
 				DEBUG_PRINT("Running injection n. %lu/%lu...\n", nCurrentInjection, nTotalInjections);
@@ -454,7 +456,8 @@ static void execInjectionCampaign(int argc, char **argv)
 				target_t *injTarget = inj->target;
 
 				unsigned long offsetByte;
-				if (inj->isList) {
+				if (inj->isList)
+				{
 					offsetByte = rand() % sizeof(ListItem_t); //select byte to inject
 				}
 				else if (IS_TYPE_POINTER(inj->target->type) && !inj->isPointer)
@@ -466,7 +469,7 @@ static void execInjectionCampaign(int argc, char **argv)
 					offsetByte = rand() % injTarget->size; //select byte to inject
 				}
 
-				unsigned long offsetBit = rand() % 8;				 //select bit to inject
+				unsigned long offsetBit = rand() % 8; //select bit to inject
 				unsigned long injTime;
 
 				double total = 0;
@@ -485,8 +488,9 @@ static void execInjectionCampaign(int argc, char **argv)
 
 					injTime = total * campaign->variance / 6 + campaign->medTimeRange;
 
-					if(injTime<0){
-						injTime=injTime+campaign->variance/2;
+					if (injTime < 0)
+					{
+						injTime = injTime + campaign->variance / 2;
 					}
 
 					break;
@@ -502,8 +506,9 @@ static void execInjectionCampaign(int argc, char **argv)
 
 					injTime = total * campaign->variance + campaign->medTimeRange;
 
-					if(injTime<0){
-						injTime=injTime+campaign->variance/2;
+					if (injTime < 0)
+					{
+						injTime = injTime + campaign->variance / 2;
 					}
 
 					break;
@@ -527,11 +532,13 @@ static void execInjectionCampaign(int argc, char **argv)
 				}
 
 				full++;
-				if (++j == campaign->nInjections) stop = 1;
-			}			
+				if (++j == campaign->nInjections)
+					stop = 1;
+			}
 
 			// Father process
-			do {		
+			do
+			{
 				// pos is the index of the simulation that just completed
 				unsigned int exitCode;
 				int pos = waitFreeRTOSInjections(pendingSimulations, full, &exitCode);
@@ -563,10 +570,9 @@ static void execInjectionCampaign(int argc, char **argv)
 				freeRTOSInstance tmp = pendingSimulations[pos];
 				pendingSimulations[pos] = pendingSimulations[full];
 				pendingSimulations[full] = tmp;
-			
+
 				// no more injections to run ==> wait all the pending simulations
 			} while (full && stop);
-
 		}
 	}
 
@@ -807,11 +813,12 @@ static void printInjectionTarget(FILE *output, target_t *target, int depth)
 
 thData_t *getInjectionTarget(target_t *list, const char *targetName)
 {
-	if (!list || !targetName) {
+	if (!list || !targetName)
+	{
 		// invalid parameters
 		return NULL;
 	}
-	
+
 	char *_targetName = strdup(targetName);
 	// split the query string and extract parent and child references
 	char *parentNode = NULL, *childNode = NULL;
@@ -827,9 +834,10 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 	char *rest = NULL, *tok = NULL;
 	int index1 = INT_MIN, index2 = INT_MIN;
 	int parentIsDereference = 0, childIsDereference = 0;
-	
-	// check if the parent node is expressed as a dereference 
-	if (parentNode[0] == '*') {
+
+	// check if the parent node is expressed as a dereference
+	if (parentNode[0] == '*')
+	{
 		parentIsDereference = 1;
 		parentNode++; // skip the first character
 	}
@@ -851,14 +859,15 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 		if (*rest != '\0' && rest != NULL)
 			sscanf(rest, "%d", &index2);
 
-		// check if the child node is expressed as a dereference 
-		if (childNode[0] == '*') {
+		// check if the child node is expressed as a dereference
+		if (childNode[0] == '*')
+		{
 			childIsDereference = 1;
 			childNode++; // skip the first character
 		}
 	}
 
-	thData_t *data = (thData_t*) malloc(sizeof(thData_t));
+	thData_t *data = (thData_t *)malloc(sizeof(thData_t));
 	memset(data, 0, sizeof(thData_t));
 
 	target_t *tmp = list;
@@ -868,7 +877,8 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 		{
 			// the strings are matching
 
-			if (*childNode && !IS_TYPE_STRUCT(tmp->type)) {
+			if (*childNode && !IS_TYPE_STRUCT(tmp->type))
+			{
 				// child node specified but tmp is not a father injection target
 				// example: xDelayedTaskList1->my_field is NOT valid
 				ERR_PRINT("Invalid injection target %s\n", targetName);
@@ -897,12 +907,15 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 			if (IS_TYPE_ARRAY(tmp->type))
 			{
 				// tmp is an array
-				if (index1 >= 0) {
+				if (index1 >= 0)
+				{
 					// select item in position index1
-					data->address = (void*) (((unsigned long) data->address) + (tmp->size * index1));
-				} else if (index1 == -1) {
+					data->address = (void *)(((unsigned long)data->address) + (tmp->size * index1));
+				}
+				else if (index1 == -1)
+				{
 					// randomly select a target inside the array
-					data->address = (void*) (((unsigned long) data->address) + (tmp->size * (rand() % tmp->nmemb)));
+					data->address = (void *)(((unsigned long)data->address) + (tmp->size * (rand() % tmp->nmemb)));
 				}
 			}
 
@@ -910,7 +923,8 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 			{
 				// no child reference specified => return the current node
 				if (IS_TYPE_LIST(tmp->type) &&
-					((IS_TYPE_ARRAY(tmp->type) && index2 >= -1) || (!IS_TYPE_ARRAY(tmp->type) && index1 >= -1))) {
+					((IS_TYPE_ARRAY(tmp->type) && index2 >= -1) || (!IS_TYPE_ARRAY(tmp->type) && index1 >= -1)))
+				{
 
 					data->isList = 1;
 					if (IS_TYPE_ARRAY(tmp->type))
@@ -923,7 +937,7 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 					}
 				}
 
-				data->address = (void*) data->address;
+				data->address = (void *)data->address;
 				data->target = tmp;
 
 				free(_targetName);
@@ -935,24 +949,30 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 			{
 				if (strcmp(child->name, childNode) == 0)
 				{
-					unsigned long innerAddress = (unsigned long) child->address;
-					
+					unsigned long innerAddress = (unsigned long)child->address;
+
 					if (IS_TYPE_ARRAY(child->type) && index2 >= 0)
 					{
 						// tmp is an array
-						if (index2 >= 0) {
+						if (index2 >= 0)
+						{
 							// select item in position index1
 							innerAddress = innerAddress + (child->size * index2);
-						} else if (index2 == -1) {
+						}
+						else if (index2 == -1)
+						{
 							// randomly select a target inside the array
 							innerAddress = innerAddress + (child->size * (rand() % child->nmemb));
 						}
 					}
 
-					if (data->isPointer) {
-						data->offset = (void*) innerAddress;
-					} else {
-						data->address = (void*) ((unsigned long) data->address + innerAddress);
+					if (data->isPointer)
+					{
+						data->offset = (void *)innerAddress;
+					}
+					else
+					{
+						data->address = (void *)((unsigned long)data->address + innerAddress);
 					}
 
 					data->target = child;
@@ -1156,8 +1176,8 @@ static int readInjectionCampaignList(const char *filename, injectionCampaign_t *
 	FILE *inputCampaign = fopen(filename, "r");
 	if (inputCampaign == NULL)
 	{
-		ERR_PRINT("Couldn't open input file input.csv.\n");
-		return 1;
+		ERR_PRINT("Couldn't open input file input csv file.\n");
+		exit(GENERIC_ERROR_EXIT_CODE);
 	}
 
 	*list = (injectionCampaign_t *)malloc(0);
