@@ -39,6 +39,29 @@ In order to run one or multiple injeciton campaigns, use the command:
 ```
 The csv input file supports the insertion of comment lines by prepending a "#" character at the beginning of the line.
 
+## Example
+An example of the output produced by small injection campaigns on different targets ([input.csv](input.csv)).
+
+| Target                         |  Time (ns) |   nExecs |   Silent % |    Delay % |    Error % |     Hang % |    Crash % |
+|--------------------------------|------------|----------|------------|------------|------------|------------|------------|
+| uxTopReadyPriority             |   20000000 |       50 |      0.00% |      4.00% |      0.00% |      4.00% |     92.00% |
+| xNumOfOverflows                |   20000000 |       50 |     88.00% |     12.00% |      0.00% |      0.00% |      0.00% |
+| xDelayedTaskList2              |   20000000 |       50 |     76.00% |     24.00% |      0.00% |      0.00% |      0.00% |
+| xIdleTaskHandle                |   20000000 |       50 |      0.00% |      0.00% |      0.00% |      0.00% |    100.00% |
+| xSchedulerRunning              |   20000000 |       50 |     66.00% |     32.00% |      0.00% |      0.00% |      2.00% |
+| xTimerTaskHandle               |   20000000 |       50 |     92.00% |      8.00% |      0.00% |      0.00% |      0.00% |
+| xTimerQueue                    |   20000000 |       50 |      0.00% |      0.00% |      0.00% |      0.00% |    100.00% |
+| xNextTaskUnblockTime           |   20000000 |       50 |     62.00% |      4.00% |      0.00% |     32.00% |      2.00% |
+| xTasksWaitingTermination       |   20000000 |       50 |     58.00% |     14.00% |      0.00% |      0.00% |     28.00% |
+| uxDeletedTasksWaitingCleanUp   |   20000000 |       50 |      0.00% |      0.00% |      0.00% |      0.00% |    100.00% |
+| xActiveTimerList1              |   20000000 |       50 |     62.00% |     24.00% |      0.00% |      0.00% |     14.00% |
+| *pxCurrentTimerList            |   20000000 |       50 |     68.00% |     20.00% |      0.00% |      0.00% |     12.00% |
+| pxCurrentTCB.pxTopOfStack      |   20000000 |        5 |      0.00% |      0.00% |      0.00% |      0.00% |    100.00% |
+| pxCurrentTCB.uxPriority        |   20000000 |        5 |      0.00% |      0.00% |      0.00% |      0.00% |    100.00% |
+| pxCurrentTCB.ucNotifyState[2]  |   20000000 |        5 |     20.00% |     80.00% |      0.00% |      0.00% |      0.00% |
+| pxReadyTasksLists[0][0]        |   20000000 |        5 |     20.00% |      0.00% |      0.00% |      0.00% |     80.00% |
+
+
 ## Contributing
 Contribution to the project is welcome, although the project won't be maintained in the future by the development team.
 
