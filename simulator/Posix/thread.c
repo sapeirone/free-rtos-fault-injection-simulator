@@ -14,8 +14,8 @@ static void unmaskSignals();
 pthread_t injectorThreadId;
 
 int launchInjectorThread(void *(*function)(void *),
-                 const thData_t *injectionArgs,
-                 thread_t *id)
+                         const thData_t *injectionArgs,
+                         thread_t *id)
 {
 
     DEBUG_PRINT("launchInjectorThread called...\n");
@@ -23,22 +23,22 @@ int launchInjectorThread(void *(*function)(void *),
 
     pthread_attr_init(&attrs);
     pthread_attr_setschedpolicy(&attrs, SCHED_FIFO);
-    
-    // the new thread inherits the signal mask from the parent
+
+    // the injector thread should not receive signals
+    // => mask all the signals before creating the new thread
     sigset_t xAllSignals, old;
-    sigfillset(&xAllSignals);    
+    sigfillset(&xAllSignals);
     pthread_sigmask(SIG_SETMASK, &xAllSignals, &old);
 
+    // create a new thread for the injector
     if (pthread_create(&injectorThreadId, &attrs, function, (void *)injectionArgs) != 0)
     {
         return INJECTOR_THREAD_FAILURE;
     }
 
-    // restore the previous signal mask
+    // restore the previous signal mask for the current thread
     pthread_sigmask(SIG_SETMASK, &old, NULL);
 
-    // DEBUG_PRINT("yielding...\n");
-    // pthread_yield();
     id->thread_id = injectorThreadId;
     return INJECTOR_THREAD_SUCCESS;
 }

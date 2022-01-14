@@ -14,8 +14,27 @@
 
 #define WATCHDOG_TIMEOUT_SEC 1
 
+/**
+ * @brief Run a watchdog timer for the the requested process.
+ * 
+ * Setup a watchdog timer that kills the child process running a
+ * FreeRTOS simulation if it exceeds a maximum execution time.
+ * The timeout is specified by WATCHDOG_TIMEOUT_SEC.
+ * 
+ * @param pid is the identifier of the process to watch
+ * @param timerId is a pointer to the timer
+ * @return int is zero if the watchdog was created successfully, 
+ * false otherwise
+ */
 static int run_watchdog_timer(pid_t pid, timer_t *timerId);
+
+/**
+ * @brief A killer.
+ * 
+ * @param val is the pid of the process to kill
+ */
 static void watchdog_func(union sigval val);
+
 
 int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const char *injectorPath,
@@ -24,6 +43,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
                          const unsigned long offsetByte,
                          const unsigned long offsetBit)
 {
+    // fork a child process for the Free RTOS simulation
     pid_t pid = fork();
 
     if (pid < 0)
@@ -45,10 +65,13 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
         return FREE_RTOS_FORK_SUCCESS;
     }
 
+    // try to increase the scheduling priority of the threads
+    // of the current process to realtime (this requires root privileges)
     struct sched_param p;
     p.sched_priority = sched_get_priority_max(SCHED_RR);
     sched_setscheduler(getpid(), SCHED_RR, &p); // fail silently
 
+    // increase the process's scheduling priority
     setpriority(PRIO_PROCESS, getpid(), -20);
 
     char timeBuffer[16];
@@ -60,6 +83,7 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     char offsetBitBuffer[16];
     sprintf(offsetBitBuffer, "%ld", offsetBit);
 
+    // start the simulation (--run command of the main process)
     char *args[7] = {
         injectorPath, "--run",
         target, timeBuffer,
@@ -73,11 +97,9 @@ int runFreeRTOSInjection(freeRTOSInstance *instance,
     return FREE_RTOS_FORK_FAILURE;
 }
 
-/**
- * Setup a watchdog timer that kills the child process running a
- * FreeRTOS simulation if it exceeds a maximum execution time.
- */
 static int run_watchdog_timer(pid_t pid, timer_t *timerId) {
+    // setup an event that calls the watchdog function after
+    // the timeout expired
     struct sigevent sig;
     sig.sigev_notify = SIGEV_THREAD;
     // when the timer expires watchdog_func is called
@@ -119,14 +141,18 @@ static void watchdog_func(union sigval val) {
 int waitFreeRTOSInjection(const freeRTOSInstance *instance)
 {
     int exitCode;
+    
+    // wait for the instance to terminate
     waitpid(instance->pid, &exitCode, 0);
 
     // stop the watchdog timer
     timer_delete(instance->watchdog);
 
     if (WIFEXITED(exitCode)) {
+        // instance exited normally => return the status code
         return WEXITSTATUS(exitCode);
     } else {
+        // instance crashed
         return -1;
     }
 }
@@ -155,8 +181,10 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
 
     // check the exit code
     if (WIFEXITED(_exitCode)) {
+        // instance exited normally => return the status code
         *exitCode = WEXITSTATUS(_exitCode);
     } else {
+        // instance crashed
         *exitCode = -1; 
     }
 

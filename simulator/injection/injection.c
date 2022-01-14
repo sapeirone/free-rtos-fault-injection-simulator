@@ -22,24 +22,36 @@ void *injectorFunction(void *arg)
     unsigned long long currentTime = ulGetRunTimeCounterValue();
 
     DEBUG_PRINT("Performing the injection at time %lu...\n", currentTime);
-    DEBUG_PRINT("Injection delay: %d (%d - %d) \n", ((signed) currentTime - (signed) data->injTime), (signed) currentTime, (signed) data->injTime);
-    if (data->isList) {
+    DEBUG_PRINT("Injection delay: %d (%d - %d) \n", ((signed)currentTime - (signed)data->injTime), (signed)currentTime, (signed)data->injTime);
+
+    if (data->isList)
+    {
+        // a list's size is not known at compile time
+        // hence, the injection address must be computed at compile time
         List_t *list;
         if (data->isPointer)
-            list = *((List_t**)data->address);
-        else 
-            list = (List_t*)data->address;
+            // target is the address of a pointer pointing to a list
+            list = *((List_t **)data->address);
+        else
+            list = (List_t *)data->address;
 
         ListItem_t *item = list->pxIndex;
 
+        // compute the index of the target element
+        // a negative data->listPosition indicates that the index
+        // must selected randomly
         int position = (data->listPosition >= 0) ? data->listPosition : (rand() % list->uxNumberOfItems);
-        if (position < list->uxNumberOfItems) {
-            for (int i = 0; i < position && item; i++) {
+        if (position < list->uxNumberOfItems)
+        {
+            for (int i = 0; i < position && item; i++)
+            {
                 item = item->pxNext;
             }
 
-            if (item) {
-                *((char *)item + data->offsetByte) ^= (1 << data->offsetBit);        
+            if (item)
+            {
+                // target found => inject!
+                *((char *)item + data->offsetByte) ^= (1 << data->offsetBit);
             }
         }
     }
@@ -64,13 +76,17 @@ void *injectorFunction(void *arg)
         // Standard case: sum the injection address and the offset byte.
         *((char *)data->address + data->offsetByte) ^= (1 << data->offsetBit);
     }
+
     DEBUG_PRINT("Injection completed\n");
 
     DEBUG_PRINT("Waiting the execution timeout\n");
     sleepNanoseconds(data->timeoutNs - currentTime);
 
     DEBUG_PRINT("The execution timeout expired\n");
-    vPortGenerateSimulatedInterrupt( 5 );
+
+    // timeout expired => generate a simulated interrupt
+    // and end the scheduler
+    vPortGenerateSimulatedInterrupt(5);
     vTaskEndScheduler();
 
     // vTaskEndScheduler should NOT return

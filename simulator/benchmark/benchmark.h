@@ -3,8 +3,9 @@
 
 #define MAXARRAY 8000
 
-struct myStringStruct {
-  char qstring[128];
+struct myStringStruct
+{
+    char qstring[128];
 };
 
 extern struct myStringStruct array[MAXARRAY];
