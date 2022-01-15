@@ -68,8 +68,14 @@ StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH];
 static BaseType_t xTraceRunning = pdTRUE;
 unsigned long injTime = -1;
 
+/**
+ * Print the application command line arguments
+ */
 static void printApplicationArguments(int argc, char **argv);
 
+/**
+ * Print available injection target(s)
+ */
 static void printInjectionTarget(FILE *output, target_t *target, int depth);
 
 /**
@@ -152,6 +158,10 @@ int main(int argc, char **argv)
 	else if (strcmp(argv[1], CMD_CAMPAIGN) == 0)
 	{
 		execInjectionCampaign(argc, argv);
+	} 
+	else 
+	{
+		printf("Unrecognized command!\n");
 	}
 
 	return SUCCESSFUL_EXECUTION_EXIT_CODE;
@@ -161,22 +171,6 @@ int main(int argc, char **argv)
 static void execCmdList(int argc, char **argv)
 {
 	FILE *output = stdout;
-
-	if (argc == 3)
-	{
-		/**
-		 * Open the target output file
-		 */
-		output = fopen(argv[2], "w");
-		if (output == NULL)
-		{
-			char buf[256];
-			sprintf(buf, "Error opening the target file %s", argv[2]);
-			perror(buf);
-
-			exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
-		}
-	}
 
 	printInjectionTarget(output, targets, 0);
 
@@ -192,7 +186,7 @@ static void execCmdRun(int argc, char **argv)
 		exit(INVALID_NUMBER_OF_PARAMETERS_EXIT_CODE);
 	}
 
-	// read the golden runtime from the golden file
+	// read the golden execution time from the golden file
 	FILE *golden = fopen(GOLDEN_FILE_PATH, "r");
 	if (!golden)
 	{
@@ -210,7 +204,6 @@ static void execCmdRun(int argc, char **argv)
 	}
 	DEBUG_PRINT("Execution timeout is %lu\n", goldenExecTime);
 
-	// pray god the inputs are ok
 	injTime = atol(argv[3]);
 	unsigned long offsetByte = atol(argv[4]);
 	unsigned long offsetBit = atol(argv[5]);
@@ -303,7 +296,7 @@ static void execInjectionCampaign(int argc, char **argv)
 	}
 
 	/**
-	 * Print out an time extimation of minimum and maximum execution 
+	 * Print out an time estimation of minimum and maximum execution 
 	 * times for the whole simulation.
 	 * 
 	 * The user must input (Y/n) to confirm execution.
@@ -316,8 +309,10 @@ static void execInjectionCampaign(int argc, char **argv)
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
+		// for each injection campaign
 		injectionCampaign_t *campaign = injectionCampaigns + i;
 
+		// prepare the parameters for the injector thread
 		thData_t *inj = getInjectionTarget(targets, campaign->targetStructure);
 		if (inj == NULL)
 		{
@@ -333,8 +328,9 @@ static void execInjectionCampaign(int argc, char **argv)
 			exit(GENERIC_ERROR_EXIT_CODE);
 		}
 
+		// minimum time estimate: each run lasts as the golden run
 		double estTimeMin = (1.0 * campaign->nInjections * nanoGoldenEx) / (1000.0 * 1000.0 * 1000.0);
-		//300% of golden execution time, for each injection in the campaign
+		// 300% of golden execution time, for each injection in the campaign
 		double estTimeMax = estTimeMin * 3.0;
 
 		printMany(stdout, '-', 117);
@@ -369,23 +365,28 @@ static void execInjectionCampaign(int argc, char **argv)
 	}
 
 	/**
-	 * For each line in the input .csv, generate a injection campaign.
-	 * A for loop launches the iFork() of the forefather. 
-	 * Each father (son of the forefather), launches a thread instance of the FreeRTOS + Injector. 
-	 * The forefather waits for the father: if the return value of the wait is different from 0, the 
-	 * forefather adds 1 to the "crash" entry for that campaign. 
-	 * Each father awaits the 300% golden execution time and then reads the trace, unless the 
-	 * FreeRTOS returned by itself sooner. The father decides which termination has been performed 
+	 * For each line in the input .csv, generate an injection campaign.
+	 *  - For each run, fork a new process. 
+	 *  - The child process launches a thread instance the injector. 
+	 *  - The orchestrator waits for the child: 
+	 *     - if the return value of the wait is different from 0, the forefather adds 1 to the "crash" entry for that campaign. 
+	 * 
+	 * Each simulator awaits the 300% golden execution time before reading the trace, unless the 
+	 * FreeRTOS returned by itself sooner. It decides which termination type has been performed 
 	 * and increases the relative statistic in the memory mapped file for that campaign.
 	 * Completing injection campaigns advances a general completion bar.
 	 */
 
 	// initialize the random seed
 	srand((unsigned int)time(NULL));
-	int nCurrentInjection = 0;
-	int full = 0;
+	
+	int nCurrentInjection = 0; // total number of indipendent runs
+
+	// simulations that are still running
 	freeRTOSInstance *pendingSimulations;
 	pendingSimulations = (freeRTOSInstance *)malloc(sizeof(freeRTOSInstance) * parallelism);
+
+	int full = 0; // number of pending simulations in the pendingSimulations array
 
 	for (int i = 0; i < nInjectionCampaigns; ++i)
 	{
@@ -484,6 +485,7 @@ static void execInjectionCampaign(int argc, char **argv)
 					injTime = (rand() % range) - lowerWidth + (signed)campaign->medTimeRange;
 				}
 
+				// start the simulation
 				int ret = runFreeRTOSInjection(&pendingSimulations[full], argv[0], campaign->targetStructure, injTime, offsetByte, offsetBit);
 				if (ret < 0)
 				{
@@ -499,8 +501,10 @@ static void execInjectionCampaign(int argc, char **argv)
 			// Father process
 			do
 			{
-				// pos is the index of the simulation that just completed
 				unsigned int exitCode;
+				
+				// waitFreeRTOSInjections waits for one of the instances in pendingSimulations to complete
+				// pos is the index of the simulation that just completed
 				int pos = waitFreeRTOSInjections(pendingSimulations, full, &exitCode);
 
 				DEBUG_PRINT("Injection n. %lu/%lu completed with exit code %u...\n\n", nCurrentInjection, nTotalInjections, exitCode);
@@ -526,6 +530,8 @@ static void execInjectionCampaign(int argc, char **argv)
 					campaign->res.nCrash++;
 				}
 
+				// pendingSimulations must contain full pending simulations
+				// in the first full positions => 'collapse' the empty indices
 				full--;
 				freeRTOSInstance tmp = pendingSimulations[pos];
 				pendingSimulations[pos] = pendingSimulations[full];
@@ -578,6 +584,9 @@ void vApplicationIdleHook(void)
 		{
 			writeGoldenFile();
 		}
+
+		// generate a simulated interrupt
+		// if the system is not able to handle it, then the run should be considered as a crash
 		vPortGenerateSimulatedInterrupt(5);
 		vTaskEndScheduler();
 		ERR_PRINT("Executing past vTaskEndScheduler.\n"); // Never executed
@@ -608,6 +617,7 @@ void vApplicationTickHook(void)
 	functions can be used (those that end in FromISR()). */
 
 #ifdef WIN32
+	// deprected code for waking up the injector thread
 	int eventIsSet = 1;
 
 	if ((!isGolden) && (eventIsSet == 1) && (ulGetRunTimeCounterValue() >= injTime))
@@ -818,6 +828,8 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 	target_t *tmp = list;
 	while (tmp)
 	{
+		// tmp is one of the injection target in the list
+
 		if (strcmp(tmp->name, parentNode) == 0)
 		{
 			// the strings are matching
@@ -846,12 +858,15 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 				// example: *pxDelayedTaskList and *pxCurrentTCB are valid
 				// example: pxCurrentTCB.pxStack is valid since pxCurrentTCB points to a struct and a child is specified
 				// address = (unsigned long)*((void **)tmp->address);
-				data->isPointer = 1;
+				data->isPointer = 1; // address must be dereferenced at injection time
 			}
 
 			if (IS_TYPE_ARRAY(tmp->type))
 			{
-				// tmp is an array
+				// target is an array => select the adddress of any of its elements
+				// array have sized size so it is possible to compute the address in this phase
+				// example: pxReadyTasksLists is an array
+
 				if (index1 >= 0)
 				{
 					// select item in position index1
@@ -867,17 +882,24 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 			if (!(*childNode))
 			{
 				// no child reference specified => return the current node
+
 				if (IS_TYPE_LIST(tmp->type) &&
 					((IS_TYPE_ARRAY(tmp->type) && index2 >= -1) || (!IS_TYPE_ARRAY(tmp->type) && index1 >= -1)))
 				{
+					// target is a list 
+					// example: pxReadyTasksLists is both an array and a list (List_t pxReadyTasksLists[N])
+					//          => it is possible to specify pxReadyTasksLists[a][b] to request an injection
+					//             on the element in position b of list a
 
 					data->isList = 1;
 					if (IS_TYPE_ARRAY(tmp->type))
 					{
+						// target is only both a list and an array <==> two indices are specified
 						data->listPosition = max(index2, -1);
 					}
 					else
 					{
+						// target is only a list
 						data->listPosition = max(index1, -1);
 					}
 				}
@@ -913,6 +935,9 @@ thData_t *getInjectionTarget(target_t *list, const char *targetName)
 
 					if (data->isPointer)
 					{
+						// target contains a pointer and the injection should be performed on the 
+						// referenced memory area => this address can be computed only in the injection
+						// phase (the content of the pointer is currently uninitialized)
 						data->offset = (void *)innerAddress;
 					}
 					else
@@ -1053,6 +1078,7 @@ static int traceOutputIsCorrect()
 	tmpBuffer[2] = strtok_s(rest, "\t", &rest);
 	tmpBuffer[3] = strtok_s(rest, "\t", &rest);
 
+	// check the last two log events are "IDLE" and "RIF"
 	return (/*strncmp(tmpBuffer[0], "[IN]", 4) == 0 && strncmp(tmpBuffer[1], "IDLE", 4) == 0 &&*/
 			strncmp(tmpBuffer[2], "[RIF]", 5) == 0 && strncmp(tmpBuffer[3], "IDLE", 4) == 0);
 }

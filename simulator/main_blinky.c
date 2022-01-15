@@ -180,6 +180,9 @@ void mainSetup( void )
 					tskIDLE_PRIORITY + 2,		// The priority assigned to the task.
 					NULL );						// The task handle is not required, so NULL is passed.
 
+		// setup a custom interrupt handler
+		// checking if the os executes this ISR allows to distinguish
+		// between crash and hangs
 		vPortSetInterruptHandler( 5, prvInterruptHandler );
 	}
 }
@@ -212,6 +215,9 @@ static unsigned long prvInterruptHandler( void )
 	uint32_t ulReceivedValue;
 	BaseType_t *const HigherPrioTaskWoken = pdFALSE;
 	DEBUG_PRINT("Handler has been called.\n");
+
+	// attempt to read from an empty queue
+	// the following line should generate a QUEUE_RECEIVE_FROM_ISR_FAILED log event
 	xQueueReceiveFromISR( xQueue, &ulReceivedValue, HigherPrioTaskWoken );
 	printTrace();
 
@@ -318,5 +324,3 @@ uint32_t ulReceivedValue;
 	}
 }
 /*-----------------------------------------------------------*/
-
-
