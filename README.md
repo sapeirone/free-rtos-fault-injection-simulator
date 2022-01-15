@@ -8,7 +8,7 @@ The program runs all the campaigns and at the end produces a table of results, c
 
 As a first step, clone or download this repository in an empty folder.  
 The simulator can be compiled and run both on POSIX and Windows operating systems.  
-Be sure to run the following scripts from the root direcory of the project.  
+Be sure to run the following scripts from the root directory of the project.  
 On POSIX, the simulator can be compiled by running the [compile_posix.sh](compile_posix.sh) shell script.  
 On Windows, the simulator can be compiled by running the [compile_win32.bat](compile_win32.bat) batch script.  
 
@@ -31,9 +31,9 @@ In order to run a single injection at a specific time and on a specific bit, use
 ```bash
 ./sim.exe --run <targetStructureName> <timeInjection> <offsetByte> <offsetBit>
 ```
-This command is also used internally to generate all instances of an injeciton campaign.
+This command is also used internally to generate all instances of an injection campaign.
 
-In order to run one or multiple injeciton campaigns, use the command:
+In order to run one or multiple injection campaigns, use the command:
 ```bash
 ./sim.exe --campaign <inputFileName>.csv
 ```

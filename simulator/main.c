@@ -1,43 +1,3 @@
-/*
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * http://www.FreeRTOS.org
- * http://aws.amazon.com/freertos
- *
- * 1 tab == 4 spaces!
- */
-
-/******************************************************************************
- * This project provides two demo applications.  A simple blinky style project,
- * and a more comprehensive test and demo application.  The
- * mainCREATE_SIMPLE_BLINKY_DEMO_ONLY setting is used to select between the two.
- * The simply blinky demo is implemented and described in main_blinky.c.  The
- * more comprehensive test and demo application is implemented and described in
- * main_full.c.
- *
- * This file implements the code that is not demo specific, including the
- * hardware setup and FreeRTOS hook functions.
- *
- *******************************************************************************
- */
-
 /* Standard includes. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -610,21 +570,6 @@ void vApplicationIdleHook(void)
 	that vApplicationIdleHook() is permitted to return to its calling function,
 	because it is the responsibility of the idle task to clean up memory
 	allocated by the kernel to any task that has since deleted itself. */
-
-	/* Uncomment the following code to allow the trace to be stopped with any
-	key press.  The code is commented out by default as the kbhit() function
-	interferes with the run time behaviour. */
-	/*
-		if( _kbhit() != pdFALSE )
-		{
-			if( xTraceRunning == pdTRUE )
-			{
-				vTraceStop();
-				prvSaveTraceFile();
-				xTraceRunning = pdFALSE;
-			}
-		}
-	*/
 
 	/* If the only task remaining is the IDLE task, terminate the scheduler */
 	if (isIdleHighlander())
