@@ -1,0 +1,17 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master ]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake . && make
+      
