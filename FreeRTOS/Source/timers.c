@@ -1133,9 +1133,6 @@ target_t * read_timer_targets(target_t *target) {
     // static List_t * pxCurrentTimerList;
     APPEND_PTR_TARGET(target, pxCurrentTimerList, TYPE_LIST, NULL);
 
-    // static List_t * pxCurrentTimerList;
-    APPEND_PTR_TARGET(target, pxCurrentTimerList, TYPE_LIST, NULL);
-
     // static List_t * pxOverflowTimerList;
     APPEND_PTR_TARGET(target, pxOverflowTimerList, TYPE_LIST, NULL);
 
