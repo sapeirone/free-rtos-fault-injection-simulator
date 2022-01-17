@@ -350,7 +350,7 @@ static void execInjectionCampaign(int argc, char **argv)
 
 	printMany(stdout, '-', 117);
 	fprintf(stdout, "\n%-30s     %10s    %8s   %10s   %5s   %5s   %10.2f s   %10.2f s \n\n",
-			"Total estimated time", "-", "-", "-", "-", "-", estTotTimeMin, estTotTimeMax);
+			"Total estimated time", "-", "-", "-", "-", "-", estTotTimeMin / parallelism, estTotTimeMax / parallelism);
 
 	// require user confirmation
 	while (confirm != 'y' && confirm != 'n')

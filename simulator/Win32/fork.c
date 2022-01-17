@@ -86,7 +86,9 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
     instancesToWait = (HANDLE *)malloc(sizeof(HANDLE) * 2 * size);
     for (int i = 0; i < size; ++i)
     {
+        // even indices => proc handles
         instancesToWait[2 * i] = instances[i].procHandle;
+        // odd indices => timer handles
         instancesToWait[2 * i + 1] = instances[i].watchdog;
     }
 
@@ -111,6 +113,7 @@ int waitFreeRTOSInjections(const freeRTOSInstance *instances, int size, int *exi
     freeRTOSInstance *instance = instances + index / 2;
     if (index % 2 == 1)
     {
+        // odd index was signalled => watchdog expired => kill the corresponding process
         TerminateProcess(instance->procHandle, 1);
     }
 

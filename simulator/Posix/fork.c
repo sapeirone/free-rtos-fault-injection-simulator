@@ -101,7 +101,7 @@ static int run_watchdog_timer(pid_t pid, timer_t *timerId) {
     // setup an event that calls the watchdog function after
     // the timeout expired
     struct sigevent sig;
-    sig.sigev_notify = SIGEV_THREAD;
+    sig.sigev_notify = SIGEV_THREAD; // run the handler as a new thread
     // when the timer expires watchdog_func is called
     sig.sigev_notify_function = &watchdog_func;
     // with pid as parameter
