@@ -3,7 +3,7 @@
 ![CMake build process](https://github.com/peiro98/free-rtos-fault-injection-simulator/actions/workflows/cmake.yml/badge.svg)
 
 FreeRTOS Fault Injector Simulator is a C based project that aims at producing statistics on custom Single Event Upsets generated onto the kernel structures of a FreeRTOS instance of execution.  
-The user can specify, in a .cvs file, the characteristics of multiple injection campaigns, among which are number of instances to be tested, the kernel structures to be hit and the injection time.  
+The user can specify, in a .csv file, the characteristics of multiple injection campaigns, among which are number of instances to be tested, the kernel structures to be hit and the injection time.  
 The program runs all the campaigns and at the end produces a table of results, classifying executions in five categories: Silent, Delay, Error, Hang and Crash executions.  
 
 ## Installation
