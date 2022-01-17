@@ -12,7 +12,9 @@ for /f "delims=="   %%l in ('cmake --help ^| findstr /r "Visual Studio \d+ \d{4}
     if !generator!==null (
       set generator=%%l
     ) else (
-      if "%l:~0,1%"=="*" (
+      set first=%%l
+      set first=!first:~0,1!
+      if "!first:~0,1!"=="*" (
         set generator=%%l
       )
     )
